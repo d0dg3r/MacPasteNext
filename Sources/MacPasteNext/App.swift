@@ -120,6 +120,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         checkAccessibility()
         setupMenuBar()
         createMainWindow()
+        closeUnexpectedStartupWindows()
         
         if settings.isEnabled && isAccessibilityGranted {
             logStore.add("Starting service during launch")
@@ -127,6 +128,19 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         }
         
         startMicStatusPolling()
+    }
+
+    private func closeUnexpectedStartupWindows() {
+        let cleanupDelays: [TimeInterval] = [0.0, 0.25, 0.75]
+        for delay in cleanupDelays {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self else { return }
+                for candidate in NSApp.windows where candidate != self.window {
+                    candidate.orderOut(nil)
+                    candidate.close()
+                }
+            }
+        }
     }
     
     func startMicStatusPolling() {
@@ -230,7 +244,10 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     @objc func menuBarClicked() { }
     
     @objc func showWindow() {
+        createAndShowWindow()
+        updateWindowLayout()
         window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
     }
     
@@ -341,6 +358,15 @@ struct ContentView: View {
     @ObservedObject var logStore: LogStore
     var appDelegate: MacPasteAppDelegate
     @State var isAccessibilityGranted: Bool
+
+    private func refreshAccessibilityStatus() {
+        appDelegate.checkAccessibility()
+        isAccessibilityGranted = appDelegate.isAccessibilityGranted
+        appDelegate.updateMenu()
+        if isAccessibilityGranted && settings.isEnabled {
+            appDelegate.startService()
+        }
+    }
     
     var body: some View {
         HStack(spacing: 0) {
@@ -367,6 +393,11 @@ struct ContentView: View {
                             }
                         }
                         .buttonStyle(.borderedProminent)
+
+                        Button(Translator.get("update_status", lang: settings.language)) {
+                            refreshAccessibilityStatus()
+                        }
+                        .buttonStyle(.bordered)
                         
                         Divider()
                         
@@ -388,6 +419,11 @@ struct ContentView: View {
                     Text(Translator.get("acc_granted", lang: settings.language))
                         .foregroundColor(.green)
                     Text(Translator.get(settings.isEnabled ? "status_active" : "status_inactive", lang: settings.language))
+
+                    Button(Translator.get("update_status", lang: settings.language)) {
+                        refreshAccessibilityStatus()
+                    }
+                    .buttonStyle(.bordered)
                 }
                 
                 Divider()
@@ -426,15 +462,6 @@ struct ContentView: View {
                             }
                         
                         Divider()
-                        
-                        Button(Translator.get("update_status", lang: settings.language)) {
-                            appDelegate.checkAccessibility()
-                            isAccessibilityGranted = appDelegate.isAccessibilityGranted
-                            appDelegate.updateMenu()
-                            if isAccessibilityGranted && settings.isEnabled {
-                                appDelegate.startService()
-                            }
-                        }
                         
                         HStack {
                             Button(Translator.get("sim_copy", lang: settings.language)) {
