@@ -1,6 +1,6 @@
 # MacPasteNext
 
-![MacPasteNext Logo](assets/logo2.png)
+![MacPasteNext Logo](assets/banner.png)
 
 > Created by **Joe Mild**. Because in 2026, he was still absolutely sick of macOS being too stupid for basic Linux copy & paste. Sometimes you just have to fix this shit yourself.
 
