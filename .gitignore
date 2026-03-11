@@ -1,0 +1,24 @@
+# macOS / Finder
+.DS_Store
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Xcode / Apple tooling
+DerivedData/
+*.xcworkspace/
+*.xcodeproj/project.xcworkspace/
+xcuserdata/
+*.xcuserstate
+
+# App bundles and archives
+*.app
+*.dSYM
+*.dSYM.zip
+*.ipa
+
+# Editor and IDE
+.idea/
+.vscode/
