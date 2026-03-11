@@ -23,7 +23,17 @@ cleanup() {
 trap cleanup EXIT
 
 echo "==> Decoding signing certificate"
-echo "$MAC_CERT_P12_BASE64" | base64 -D > "$P12_FILE"
+export P12_FILE
+python3 - <<'PY'
+import base64
+import os
+import pathlib
+
+raw = os.environ["MAC_CERT_P12_BASE64"]
+clean = "".join(raw.split())
+decoded = base64.b64decode(clean, validate=False)
+pathlib.Path(os.environ["P12_FILE"]).write_bytes(decoded)
+PY
 
 echo "==> Creating temporary keychain"
 security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
