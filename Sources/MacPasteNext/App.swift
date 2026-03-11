@@ -73,6 +73,22 @@ class LogStore: ObservableObject {
     }
 }
 
+struct AppLogoView: View {
+    var body: some View {
+        if let path = Bundle.main.path(forResource: "appicon", ofType: "png"),
+           let icon = NSImage(contentsOfFile: path) {
+            Image(nsImage: icon)
+                .resizable()
+                .scaledToFit()
+        } else {
+            Image(systemName: "mouse.fill")
+                .resizable()
+                .scaledToFit()
+                .foregroundColor(.green)
+        }
+    }
+}
+
 class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     var settings = SettingsStore()
     var logStore = LogStore()
@@ -83,6 +99,14 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     @Published var isMicMuted: Bool = false
     
     @Published var isAccessibilityGranted: Bool = false
+
+    private var appVersionTitle: String {
+        let bundleVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        let resolved = bundleVersion?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let value = (resolved?.isEmpty == false) ? resolved! : "dev"
+        let normalized = value.hasPrefix("v") ? value : "v\(value)"
+        return "MacPasteNext \(normalized)"
+    }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         logStore.add("Application did finish launching")
@@ -170,7 +194,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         }
         
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "MacPasteNext v1.11", action: #selector(showWindow), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: appVersionTitle, action: #selector(showWindow), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         
         let toggleItem = NSMenuItem(title: "", action: #selector(toggleEnabled), keyEquivalent: "")
@@ -310,10 +334,8 @@ struct ContentView: View {
         HStack(spacing: 0) {
             // Left Side: Controls
             VStack(spacing: 20) {
-                Image(systemName: "ladybug.fill")
-                    .resizable()
-                    .frame(width: 50, height: 50)
-                    .foregroundColor(.orange)
+                AppLogoView()
+                    .frame(width: 72, height: 72)
                 
                 Text(Translator.get("status_title", lang: settings.language))
                     .font(.title)
