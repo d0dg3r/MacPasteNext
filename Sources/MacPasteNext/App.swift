@@ -2,7 +2,7 @@ import SwiftUI
 import OSLog
 import AppKit
 
-let appLogger = Logger(subsystem: "com.example.MacPasteNext", category: "App")
+let appLogger = Logger(subsystem: "io.github.joemild.macpastenext", category: "App")
 
 struct Translator {
     static let strings: [String: [String: String]] = [
@@ -339,7 +339,7 @@ struct ContentView: View {
                         Button(Translator.get("request_again", lang: settings.language)) {
                             let task = Process()
                             task.launchPath = "/usr/bin/tccutil"
-                            task.arguments = ["reset", "Accessibility", "com.example.MacPasteNext"]
+                            task.arguments = ["reset", "Accessibility", "io.github.joemild.macpastenext"]
                             task.launch()
                             task.waitUntilExit()
                             appDelegate.checkAccessibility()

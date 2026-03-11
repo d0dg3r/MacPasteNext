@@ -1,0 +1,56 @@
+name: macOS Release (Self-Signed)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-sign-smoke:
+    runs-on: macos-14
+    env:
+      APP_BUNDLE_ID: io.github.joemild.macpastenext
+      APP_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || format('dev-{0}', github.sha) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure scripts executable
+        run: chmod +x scripts/*.sh
+
+      - name: Build app bundle
+        run: ./scripts/build-release.sh
+
+      - name: Self-sign app bundle
+        env:
+          MAC_CERT_P12_BASE64: ${{ secrets.MAC_CERT_P12_BASE64 }}
+          MAC_CERT_P12_PASSWORD: ${{ secrets.MAC_CERT_P12_PASSWORD }}
+          MAC_CERT_IDENTITY: ${{ secrets.MAC_CERT_IDENTITY }}
+        run: ./scripts/sign-selfsigned.sh dist/MacPasteNext.app
+
+      - name: Run smoke test
+        env:
+          EXPECTED_BUNDLE_ID: io.github.joemild.macpastenext
+          EXPECTED_IDENTITY: ${{ secrets.MAC_CERT_IDENTITY }}
+        run: ./scripts/smoke-test-macos.sh dist/MacPasteNext.app
+
+      - name: Archive artifact
+        run: |
+          mkdir -p dist
+          ditto -c -k --sequesterRsrc --keepParent dist/MacPasteNext.app dist/MacPasteNext-macos-arm64.zip
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MacPasteNext-macos-arm64
+          path: dist/MacPasteNext-macos-arm64.zip
+
+      - name: Publish GitHub Release asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/MacPasteNext-macos-arm64.zip
