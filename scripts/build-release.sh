@@ -61,6 +61,10 @@ echo "==> Copying app icon resources"
 cp "$SOURCE_ICON_PNG" "$RESOURCES_DIR/appicon.png"
 generate_icns_from_png "$SOURCE_ICON_PNG" "$RESOURCES_DIR/$APP_ICON_NAME.icns"
 
+if [ -f "assets/banner.png" ]; then
+  cp "assets/banner.png" "$RESOURCES_DIR/banner.png"
+fi
+
 cat > "$CONTENTS_DIR/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

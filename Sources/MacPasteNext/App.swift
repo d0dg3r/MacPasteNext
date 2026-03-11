@@ -75,8 +75,13 @@ class LogStore: ObservableObject {
 
 struct AppLogoView: View {
     var body: some View {
-        if let path = Bundle.main.path(forResource: "appicon", ofType: "png"),
-           let icon = NSImage(contentsOfFile: path) {
+        if let path = Bundle.main.path(forResource: "banner", ofType: "png"),
+           let banner = NSImage(contentsOfFile: path) {
+            Image(nsImage: banner)
+                .resizable()
+                .scaledToFit()
+        } else if let path = Bundle.main.path(forResource: "appicon", ofType: "png"),
+                  let icon = NSImage(contentsOfFile: path) {
             Image(nsImage: icon)
                 .resizable()
                 .scaledToFit()
@@ -114,7 +119,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         
         checkAccessibility()
         setupMenuBar()
-        createAndShowWindow()
+        createMainWindow()
         
         if settings.isEnabled && isAccessibilityGranted {
             logStore.add("Starting service during launch")
@@ -155,31 +160,38 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         logStore.add("Accessibility Status: \(self.isAccessibilityGranted)")
     }
     
-    func createAndShowWindow() {
+    func updateWindowLayout() {
+        guard let window else { return }
+        let width: CGFloat = settings.showLogs ? 980 : 420
+        let height: CGFloat = 760
+        window.setContentSize(NSSize(width: width, height: height))
+    }
+
+    func createMainWindow() {
         let contentView = ContentView(
             settings: settings,
             logStore: logStore,
             appDelegate: self,
             isAccessibilityGranted: isAccessibilityGranted
         )
-        // Allow the hosting view to compute its natural height but constrain it
-        let hostingView = NSHostingView(rootView: contentView.fixedSize(horizontal: true, vertical: true))
-        let targetSize = hostingView.fittingSize
-        
-        // Define a reasonable max height so it doesn't run off screen
-        let maxHeight: CGFloat = 800
-        let finalHeight = min(targetSize.height + 40, maxHeight) // add a tiny bit of padding
         
         window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: targetSize.width, height: finalHeight),
-            styleMask: [.titled, .closable, .miniaturizable],
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 760),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
         window.center()
         window.title = Translator.get("status_title", lang: settings.language)
+        window.minSize = NSSize(width: 420, height: 620)
         
-        // Now wrap the content without fixedSize so it can pad normally inside the window
         let finalHostingView = NSHostingView(rootView: contentView)
         window.contentView = finalHostingView
+        updateWindowLayout()
+    }
+
+    func createAndShowWindow() {
+        if window == nil {
+            createMainWindow()
+        }
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -335,7 +347,7 @@ struct ContentView: View {
             // Left Side: Controls
             VStack(spacing: 20) {
                 AppLogoView()
-                    .frame(width: 72, height: 72)
+                    .frame(width: 240, height: 120)
                 
                 Text(Translator.get("status_title", lang: settings.language))
                     .font(.title)
@@ -409,6 +421,9 @@ struct ContentView: View {
                         }
                         
                         Toggle(Translator.get("show_logs", lang: settings.language), isOn: $settings.showLogs)
+                            .onChange(of: settings.showLogs) { _ in
+                                appDelegate.updateWindowLayout()
+                            }
                         
                         Divider()
                         
@@ -484,7 +499,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(NSColor.textBackgroundColor))
                 }
-                .frame(maxWidth: .infinity)
+                .frame(minWidth: 520, maxWidth: .infinity)
             }
         }
     }
