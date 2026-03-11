@@ -55,6 +55,6 @@ codesign --force --deep --sign "$MAC_CERT_IDENTITY" "$APP_PATH"
 
 echo "==> Verifying signature"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
-codesign -dv --verbose=4 "$APP_PATH" 2>&1 | rg "Identifier=|TeamIdentifier=|Authority="
+codesign -dv --verbose=4 "$APP_PATH" 2>&1 | grep -E "Identifier=|TeamIdentifier=|Authority="
 
 echo "==> Signing complete"

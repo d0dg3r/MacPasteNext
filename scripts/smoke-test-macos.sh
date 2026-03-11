@@ -27,10 +27,10 @@ fi
 echo "==> Verifying codesign signature"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 SIGN_INFO="$(codesign -dv --verbose=4 "$APP_PATH" 2>&1)"
-echo "$SIGN_INFO" | rg "Identifier=|TeamIdentifier=|Authority="
+echo "$SIGN_INFO" | grep -E "Identifier=|TeamIdentifier=|Authority="
 
 if [ -n "$EXPECTED_IDENTITY" ]; then
-  if ! echo "$SIGN_INFO" | rg -q "$EXPECTED_IDENTITY"; then
+  if ! echo "$SIGN_INFO" | grep -q "$EXPECTED_IDENTITY"; then
     echo "Expected signing identity fragment not found: $EXPECTED_IDENTITY"
     exit 1
   fi
@@ -43,7 +43,7 @@ sleep 5
 
 if ! ps -p "$APP_PID" >/dev/null 2>&1; then
   echo "App process exited too early. Recent output:"
-  rg "." /tmp/macpastenext-smoke.log || true
+  sed -n '1,200p' /tmp/macpastenext-smoke.log || true
   exit 1
 fi
 
