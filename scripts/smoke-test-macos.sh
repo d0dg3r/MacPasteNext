@@ -17,7 +17,7 @@ if [ ! -x "$BIN_PATH" ]; then
 fi
 
 echo "==> Checking bundle identifier"
-BUNDLE_ID="$(defaults read "$APP_PATH/Contents/Info" CFBundleIdentifier)"
+BUNDLE_ID="$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")"
 echo "Bundle identifier: $BUNDLE_ID"
 if [ "$BUNDLE_ID" != "$EXPECTED_BUNDLE_ID" ]; then
   echo "Unexpected bundle identifier. Expected '$EXPECTED_BUNDLE_ID', got '$BUNDLE_ID'"
