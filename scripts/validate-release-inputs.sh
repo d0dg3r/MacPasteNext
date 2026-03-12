@@ -13,6 +13,7 @@ required_files=(
   "assets/banner.png"
   "assets/appicon.png"
   "scripts/build-release.sh"
+  "scripts/extract-changelog.sh"
   "scripts/sign-selfsigned.sh"
   "scripts/smoke-test-macos.sh"
 )

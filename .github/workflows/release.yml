@@ -23,6 +23,15 @@ jobs:
       - name: Ensure scripts executable
         run: chmod +x scripts/*.sh
 
+      - name: Validate macOS toolchain availability
+        run: |
+          for cmd in swift python3 sips iconutil plutil security codesign spctl; do
+            if ! command -v "$cmd" >/dev/null 2>&1; then
+              echo "Missing required command: $cmd"
+              exit 1
+            fi
+          done
+
       - name: Validate tag release inputs
         if: startsWith(github.ref, 'refs/tags/')
         run: |
@@ -38,14 +47,27 @@ jobs:
       - name: Build app bundle
         run: ./scripts/build-release.sh
 
-      - name: Self-sign app bundle
+      - name: Validate signing secrets
+        env:
+          MAC_CERT_P12_BASE64: ${{ secrets.MAC_CERT_P12_BASE64 }}
+          MAC_CERT_P12_PASSWORD: ${{ secrets.MAC_CERT_P12_PASSWORD }}
+          MAC_CERT_IDENTITY: ${{ secrets.MAC_CERT_IDENTITY }}
+        run: |
+          for secret_name in MAC_CERT_P12_BASE64 MAC_CERT_P12_PASSWORD MAC_CERT_IDENTITY; do
+            if [ -z "${!secret_name:-}" ]; then
+              echo "Missing required GitHub secret: $secret_name"
+              exit 1
+            fi
+          done
+
+      - name: Self-sign app bundle (persistent identity)
         env:
           MAC_CERT_P12_BASE64: ${{ secrets.MAC_CERT_P12_BASE64 }}
           MAC_CERT_P12_PASSWORD: ${{ secrets.MAC_CERT_P12_PASSWORD }}
           MAC_CERT_IDENTITY: ${{ secrets.MAC_CERT_IDENTITY }}
         run: ./scripts/sign-selfsigned.sh dist/MacPasteNext.app
 
-      - name: Run smoke test
+      - name: Run signed-app smoke test
         env:
           EXPECTED_BUNDLE_ID: io.github.joemild.macpastenext
           EXPECTED_IDENTITY: ${{ secrets.MAC_CERT_IDENTITY }}

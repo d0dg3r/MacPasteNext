@@ -8,6 +8,23 @@ if [ ! -d "$APP_PATH" ]; then
   exit 1
 fi
 
+require_command() {
+  local cmd="$1"
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "Required command not found: $cmd"
+    exit 1
+  fi
+}
+
+if [ "$(uname -s)" != "Darwin" ]; then
+  echo "This script must run on macOS (Darwin)."
+  exit 1
+fi
+
+require_command python3
+require_command security
+require_command codesign
+
 : "${MAC_CERT_P12_BASE64:?MAC_CERT_P12_BASE64 is required}"
 : "${MAC_CERT_P12_PASSWORD:?MAC_CERT_P12_PASSWORD is required}"
 : "${MAC_CERT_IDENTITY:?MAC_CERT_IDENTITY is required}"
@@ -26,12 +43,18 @@ echo "==> Decoding signing certificate"
 export P12_FILE
 python3 - <<'PY'
 import base64
+import binascii
 import os
 import pathlib
+import sys
 
 raw = os.environ["MAC_CERT_P12_BASE64"]
 clean = "".join(raw.split())
-decoded = base64.b64decode(clean, validate=False)
+try:
+    decoded = base64.b64decode(clean, validate=True)
+except binascii.Error as exc:
+    print(f"Invalid MAC_CERT_P12_BASE64 payload: {exc}", file=sys.stderr)
+    sys.exit(2)
 pathlib.Path(os.environ["P12_FILE"]).write_bytes(decoded)
 PY
 

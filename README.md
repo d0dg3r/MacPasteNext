@@ -111,6 +111,23 @@ export MAC_CERT_IDENTITY="MacPasteNext Self Signed"
 - Push a tag like `v1.12.0` to run release pipeline.
 - The workflow builds, signs, runs smoke tests, and uploads `MacPasteNext-macos-arm64.zip`.
 
+### Local preflight checks before CI
+
+These checks are safe on Linux and help catch obvious issues before pushing:
+
+```bash
+# Shell syntax checks
+bash -n scripts/build-release.sh
+bash -n scripts/sign-selfsigned.sh
+bash -n scripts/smoke-test-macos.sh
+bash -n scripts/validate-release-inputs.sh
+
+# Changelog extraction sanity check (replace tag as needed)
+./scripts/extract-changelog.sh v1.12.0 CHANGELOG.md /tmp/release-notes.md allow-missing
+```
+
+Full app build/sign/smoke requires macOS because it depends on Apple tooling (`sips`, `iconutil`, `codesign`, `security`, `spctl`).
+
 ## Permissions Required
 
 Because MacPasteNext needs to monitor your global mouse clicks and natively simulate keypresses (Cmd+C / Cmd+V) to trick macOS into pasting text, the operating system requires you to grant it **Accessibility** permissions.

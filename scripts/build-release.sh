@@ -14,6 +14,14 @@ RESOURCES_DIR="$CONTENTS_DIR/Resources"
 SOURCE_ICON_PNG="${APP_ICON_SOURCE:-assets/appicon-cropped.png}"
 APP_ICON_NAME="AppIcon"
 
+require_command() {
+  local cmd="$1"
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "Required command not found: $cmd"
+    exit 1
+  fi
+}
+
 generate_icns_from_png() {
   local source_png="$1"
   local output_icns="$2"
@@ -37,6 +45,13 @@ generate_icns_from_png() {
 }
 
 echo "==> Building $APP_NAME ($VERSION)"
+if [ "$(uname -s)" != "Darwin" ]; then
+  echo "This script must run on macOS (Darwin)."
+  exit 1
+fi
+require_command swift
+require_command sips
+require_command iconutil
 swift build -c release
 
 echo "==> Preparing app bundle in $APP_DIR"
