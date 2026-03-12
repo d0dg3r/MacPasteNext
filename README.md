@@ -120,6 +120,14 @@ xattr -dr com.apple.quarantine /Applications/MacPasteNext.app
 
 Community contributions to deal with macOS quirks are welcome. See `CONTRIBUTING.md` for our contribution guidelines.
 
+## Project Health
+
+- Roadmap: `ROADMAP.md`
+- Changelog: `CHANGELOG.md`
+- Code of Conduct: `CODE_OF_CONDUCT.md`
+- Security Policy: `SECURITY.md`
+- Privacy Policy: `PRIVACY.md`
+
 ## License
 
 Provided under the MIT License. See `LICENSE` for more information.
