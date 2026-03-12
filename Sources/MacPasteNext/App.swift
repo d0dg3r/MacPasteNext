@@ -353,12 +353,15 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: Translator.get("about_btn_releases", lang: l))
 
         let response = alert.runModal()
+        let releaseButtonResponse = NSApplication.ModalResponse(
+            rawValue: NSApplication.ModalResponse.alertFirstButtonReturn.rawValue + 3
+        )
         switch response {
         case .alertSecondButtonReturn:
             NSWorkspace.shared.open(repoWebURL)
         case .alertThirdButtonReturn:
             NSWorkspace.shared.open(sponsorsWebURL)
-        case .alertFourthButtonReturn:
+        case releaseButtonResponse:
             NSWorkspace.shared.open(releasesWebURL)
         default:
             break
