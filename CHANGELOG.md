@@ -12,6 +12,21 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 - GitHub issue and pull request templates
 - Funding metadata for GitHub Sponsors
 
+## [v1.12.19] - 2026-03-12
+
+- Changed
+
+- Improved onboarding/settings UX with clearer menu discoverability (`Open Settings`) and updated in-app slogan/wording
+- Expanded accessibility diagnostics in settings with last-check timestamp and refresh-attempt counter
+- Switched copied build metadata repo URL to HTTPS for easier sharing
+- Updated README support/reporting links to explicit clickable URLs
+- Added release metadata validation in CI to ensure tag/version and bundle id consistency
+
+- Fixed
+
+- Ensured onboarding hint popup opens without the default app icon
+- Added explicit signing identity presence check before codesign to fail early with clearer CI diagnostics
+
 ## [v1.12.18] - 2026-03-12
 
 - Changed
