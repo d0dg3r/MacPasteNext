@@ -12,6 +12,27 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 - GitHub issue and pull request templates
 - Funding metadata for GitHub Sponsors
 
+## [v1.12.17] - 2026-03-12
+
+- Added
+
+- New `Preflight Checks` workflow for PR/push validation (shell syntax + changelog extraction)
+- First-run onboarding dialog to explain menu bar behavior and required accessibility setup
+- Debug log export action in Help menu for easier bug reporting
+
+- Changed
+
+- Hardened release workflow with explicit script syntax validation step
+- Improved screenshot workflow push error handling for branch/protection constraints
+- Aligned release input validation with icon fallback behavior (`appicon-cropped.png` or `appicon.png`)
+- Improved accessibility troubleshooting guidance in the app UI
+- Updated roadmap, issue/PR templates, and support/reporting documentation
+
+- Fixed
+
+- Reduced accidental auto-copy triggers with debounce guardrails and corrected double-click detection timing
+- Screenshot capture script now uses collision-safe temporary log files
+
 ## [v1.12.16] - 2026-03-12
 
 - Changed
