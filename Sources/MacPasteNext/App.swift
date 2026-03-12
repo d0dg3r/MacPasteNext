@@ -110,6 +110,54 @@ struct AppLogoView: View {
     }
 }
 
+struct AboutDialogView: View {
+    let bannerImage: NSImage?
+    let versionText: String
+    let infoText: String
+    let repoLabel: String
+    let sponsorsLabel: String
+    let releasesLabel: String
+    let closeLabel: String
+    let onRepo: () -> Void
+    let onSponsors: () -> Void
+    let onReleases: () -> Void
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            if let bannerImage {
+                Image(nsImage: bannerImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 256, height: 160) // 200% of previous 128x80
+            }
+
+            Text("MacPasteNext \(versionText)")
+                .font(.title2)
+                .multilineTextAlignment(.center)
+
+            Text(infoText)
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+
+            HStack(spacing: 10) {
+                Button(repoLabel, action: onRepo)
+                    .buttonStyle(.borderedProminent)
+                Button(sponsorsLabel, action: onSponsors)
+                    .buttonStyle(.bordered)
+                Button(releasesLabel, action: onReleases)
+                    .buttonStyle(.bordered)
+                Button(closeLabel, action: onClose)
+                    .buttonStyle(.bordered)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .padding(20)
+        .frame(width: 600, height: 380)
+    }
+}
+
 class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     private let repoWebURL = URL(string: "https://github.com/d0dg3r/MacPasteNext")!
     private let issuesWebURL = URL(string: "https://github.com/d0dg3r/MacPasteNext/issues")!
@@ -123,9 +171,11 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     var eventHandler: EventHandler?
     var statusItem: NSStatusItem?
     var window: NSWindow!
+    var aboutWindow: NSWindow?
     var micStatusTimer: Timer?
     var toggleMenuItem: NSMenuItem?
     var micMuteMenuItem: NSMenuItem?
+    var permissionRefreshMenuItem: NSMenuItem?
     var quitMenuItem: NSMenuItem?
     var discussionsMenuItem: NSMenuItem?
     var aboutMenuItem: NSMenuItem?
@@ -264,6 +314,21 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         let l = settings.language
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: appVersionTitle, action: #selector(showWindow), keyEquivalent: ""))
+        
+        let toggleItem = NSMenuItem(title: "", action: #selector(toggleEnabled), keyEquivalent: "")
+        toggleItem.target = self
+        menu.addItem(toggleItem)
+
+        let micMuteItem = NSMenuItem(title: "", action: #selector(toggleMicMute), keyEquivalent: "")
+        micMuteItem.target = self
+        menu.addItem(micMuteItem)
+
+        let permissionItem = NSMenuItem(title: Translator.get("update_status", lang: l), action: #selector(refreshPermissionFromMenu), keyEquivalent: "")
+        permissionItem.target = self
+        menu.addItem(permissionItem)
+
+        menu.addItem(NSMenuItem.separator())
+
         let aboutItem = NSMenuItem(title: Translator.get("menu_about", lang: l), action: #selector(showAbout), keyEquivalent: "")
         menu.addItem(aboutItem)
 
@@ -288,23 +353,15 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         }
         helpItem.submenu = helpMenu
         menu.addItem(helpItem)
+
         menu.addItem(NSMenuItem.separator())
-        
-        let toggleItem = NSMenuItem(title: "", action: #selector(toggleEnabled), keyEquivalent: "")
-        toggleItem.target = self
-        menu.addItem(toggleItem)
-        
-        menu.addItem(NSMenuItem.separator())
-        
-        let micMuteItem = NSMenuItem(title: "", action: #selector(toggleMicMute), keyEquivalent: "")
-        micMuteItem.target = self
-        menu.addItem(micMuteItem)
         
         let quitItem = NSMenuItem(title: "", action: #selector(terminate), keyEquivalent: "q")
         menu.addItem(quitItem)
         
         toggleMenuItem = toggleItem
         micMuteMenuItem = micMuteItem
+        permissionRefreshMenuItem = permissionItem
         quitMenuItem = quitItem
         aboutMenuItem = aboutItem
         helpMenuItem = helpItem
@@ -333,40 +390,51 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     @objc func showAbout() {
         let l = settings.language
         let displayVersion = appVersionTitle.replacingOccurrences(of: "MacPasteNext ", with: "")
-        let alert = NSAlert()
-        alert.messageText = "MacPasteNext \(displayVersion)"
-        alert.informativeText = Translator.get("about_info", lang: l)
-        alert.alertStyle = .informational
+        let banner = Bundle.main.path(forResource: "banner", ofType: "png")
+            .flatMap { NSImage(contentsOfFile: $0) }
 
-        if let path = Bundle.main.path(forResource: "banner", ofType: "png"),
-           let image = NSImage(contentsOfFile: path) {
-            let banner = NSImage(size: NSSize(width: 128, height: 80))
-            banner.lockFocus()
-            image.draw(in: NSRect(x: 0, y: 0, width: 128, height: 80))
-            banner.unlockFocus()
-            alert.icon = banner
+        if let aboutWindow {
+            aboutWindow.makeKeyAndOrderFront(nil)
+            aboutWindow.orderFrontRegardless()
+            NSApp.activate(ignoringOtherApps: true)
+            return
         }
 
-        // Keep OK as first/default button so stray clicks never trigger external links.
-        alert.addButton(withTitle: Translator.get("about_btn_ok", lang: l))
-        alert.addButton(withTitle: Translator.get("about_btn_repo", lang: l))
-        alert.addButton(withTitle: Translator.get("about_btn_sponsors", lang: l))
-        alert.addButton(withTitle: Translator.get("about_btn_releases", lang: l))
-
-        let response = alert.runModal()
-        let releaseButtonResponse = NSApplication.ModalResponse(
-            rawValue: NSApplication.ModalResponse.alertFirstButtonReturn.rawValue + 3
+        let contentView = AboutDialogView(
+            bannerImage: banner,
+            versionText: displayVersion,
+            infoText: Translator.get("about_info", lang: l),
+            repoLabel: Translator.get("about_btn_repo", lang: l),
+            sponsorsLabel: Translator.get("about_btn_sponsors", lang: l),
+            releasesLabel: Translator.get("about_btn_releases", lang: l),
+            closeLabel: Translator.get("about_btn_ok", lang: l),
+            onRepo: { NSWorkspace.shared.open(self.repoWebURL) },
+            onSponsors: { NSWorkspace.shared.open(self.sponsorsWebURL) },
+            onReleases: { NSWorkspace.shared.open(self.releasesWebURL) },
+            onClose: { self.closeAboutWindow() }
         )
-        switch response {
-        case .alertSecondButtonReturn:
-            NSWorkspace.shared.open(repoWebURL)
-        case .alertThirdButtonReturn:
-            NSWorkspace.shared.open(sponsorsWebURL)
-        case releaseButtonResponse:
-            NSWorkspace.shared.open(releasesWebURL)
-        default:
-            break
-        }
+
+        let newWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 380),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        newWindow.title = Translator.get("menu_about", lang: l)
+        newWindow.isReleasedWhenClosed = false
+        newWindow.center()
+        newWindow.contentView = NSHostingView(rootView: contentView)
+        newWindow.delegate = self
+
+        aboutWindow = newWindow
+        newWindow.makeKeyAndOrderFront(nil)
+        newWindow.orderFrontRegardless()
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func closeAboutWindow() {
+        aboutWindow?.close()
+        aboutWindow = nil
     }
 
     @objc func openProjectRepo() {
@@ -413,6 +481,16 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         settings.enableMicMute.toggle()
         updateMenu()
     }
+
+    @objc func refreshPermissionFromMenu() {
+        checkAccessibility()
+        updateMenu()
+        if settings.isEnabled && isAccessibilityGranted {
+            startService()
+        } else {
+            eventHandler?.stop()
+        }
+    }
     
     @objc func terminate() {
         NSApplication.shared.terminate(nil)
@@ -423,6 +501,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
             let l = settings.language
             toggleMenuItem?.title = Translator.get(settings.isEnabled ? "menu_deactivate" : "menu_activate", lang: l)
             micMuteMenuItem?.title = Translator.get(settings.enableMicMute ? "menu_mic_off" : "menu_mic_on", lang: l)
+            permissionRefreshMenuItem?.title = Translator.get("update_status", lang: l)
             quitMenuItem?.title = Translator.get("menu_quit", lang: l)
             aboutMenuItem?.title = Translator.get("menu_about", lang: l)
             helpMenuItem?.title = Translator.get("menu_help", lang: l)
@@ -520,6 +599,15 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         }
         logStore.add("Activating Event Handler...")
         eventHandler?.start()
+    }
+}
+
+extension MacPasteAppDelegate: NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        guard let closingWindow = notification.object as? NSWindow else { return }
+        if closingWindow == aboutWindow {
+            aboutWindow = nil
+        }
     }
 }
 
