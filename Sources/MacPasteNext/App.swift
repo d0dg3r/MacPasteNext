@@ -320,6 +320,9 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func createMainWindow() {
+        if window != nil {
+            return
+        }
         let contentView = ContentView(
             settings: settings,
             logStore: logStore,
@@ -334,6 +337,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
             contentRect: NSRect(x: 0, y: 0, width: initialWidth, height: initialHeight),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
         window.title = Translator.get("status_title", lang: settings.language)
         window.minSize = NSSize(width: 420, height: 620)
         if settings.hasSavedWindowPosition {
@@ -346,11 +350,17 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         window.contentView = finalHostingView
         window.delegate = self
         updateWindowLayout()
+        logStore.add("Main window created")
     }
 
     func createAndShowWindow() {
         if window == nil {
+            logStore.add("Main window missing, recreating for open-settings action")
             createMainWindow()
+        }
+        guard let window else {
+            logStore.add("Main window open aborted: window is nil after createMainWindow()")
+            return
         }
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -447,6 +457,10 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     @objc func showWindow() {
         createAndShowWindow()
         updateWindowLayout()
+        guard let window else {
+            logStore.add("showWindow() aborted: main window is nil")
+            return
+        }
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
@@ -746,7 +760,14 @@ extension MacPasteAppDelegate: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         guard let closingWindow = notification.object as? NSWindow else { return }
         if closingWindow == aboutWindow {
+            logStore.add("About window closed")
             aboutWindow = nil
+            return
+        }
+        if closingWindow == window {
+            persistMainWindowFrame()
+            logStore.add("Main window closed; resetting reference for safe reopen")
+            window = nil
         }
     }
 
