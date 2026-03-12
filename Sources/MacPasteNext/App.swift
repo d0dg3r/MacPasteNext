@@ -655,17 +655,30 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
             
             if let button = statusItem?.button {
                 let isMutedEnabled = isMicMuted && settings.enableMicMute
+
+                func applyStatusIcon(systemSymbolName: String, accessibility: String) {
+                    if let image = NSImage(systemSymbolName: systemSymbolName, accessibilityDescription: accessibility) {
+                        button.image = image
+                        button.title = ""
+                    } else {
+                        button.image = nil
+                        button.title = "MP"
+                        logStore.add("Status bar icon fallback active for symbol: \(systemSymbolName)")
+                    }
+                }
                 
                 if !settings.isEnabled || !isAccessibilityGranted {
-                    button.image = NSImage(systemSymbolName: "cursorarrow.slash", accessibilityDescription: "Disabled")
+                    applyStatusIcon(systemSymbolName: "cursorarrow.slash", accessibility: "Disabled")
                 } else if settings.enableMicMute {
                     if isMutedEnabled {
                         button.image = createConfiguredIcon(symbolName: "mic.slash.fill", backgroundColor: .systemRed, iconColor: .white)
+                        button.title = ""
                     } else {
                         button.image = createConfiguredIcon(symbolName: "mic.fill", backgroundColor: .systemGreen, iconColor: .white)
+                        button.title = ""
                     }
                 } else {
-                    button.image = NSImage(systemSymbolName: "cursorarrow.and.square.on.square.fill", accessibilityDescription: "MacPasteNext")
+                    applyStatusIcon(systemSymbolName: "cursorarrow.and.square.on.square.fill", accessibility: "MacPasteNext")
                 }
             }
         }

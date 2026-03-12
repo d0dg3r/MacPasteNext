@@ -108,5 +108,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          prerelease: ${{ contains(github.ref_name, '-beta.') }}
           body_path: release-notes.md
           files: dist/MacPasteNext-macos-arm64.zip

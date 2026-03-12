@@ -108,10 +108,12 @@ export MAC_CERT_P12_PASSWORD="<your_p12_password>"
 export MAC_CERT_IDENTITY="MacPasteNext Self Signed"
 ```
 
-### Triggering a release
+### Triggering releases
 
-- Push a tag like `v1.12.0` to run release pipeline.
-- The workflow builds, signs, runs smoke tests, and uploads `MacPasteNext-macos-arm64.zip`.
+- Beta tags use: `v1.0.0-beta.1`, `v1.0.0-beta.2`, ...
+- Final/stable tags use: `v1.0.0`, `v1.0.1`, ...
+- The release workflow publishes beta tags as GitHub **pre-releases** and final tags as normal releases.
+- Each release builds, signs, runs smoke tests, uploads `MacPasteNext-macos-arm64.zip`, and then triggers screenshot refresh automation.
 
 ### Local preflight checks before CI
 
@@ -125,7 +127,7 @@ bash -n scripts/smoke-test-macos.sh
 bash -n scripts/validate-release-inputs.sh
 
 # Changelog extraction sanity check (replace tag as needed)
-./scripts/extract-changelog.sh v1.12.0 CHANGELOG.md /tmp/release-notes.md allow-missing
+./scripts/extract-changelog.sh v1.0.0-beta.1 CHANGELOG.md /tmp/release-notes.md allow-missing
 ```
 
 Full app build/sign/smoke requires macOS because it depends on Apple tooling (`sips`, `iconutil`, `codesign`, `security`, `spctl`).
