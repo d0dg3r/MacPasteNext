@@ -12,6 +12,17 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 - GitHub issue and pull request templates
 - Funding metadata for GitHub Sponsors
 
+## [v1.12.22] - 2026-03-12
+
+- Changed
+
+- Hid `Simulate Copy` / `Simulate Paste` controls unless debug logs are enabled
+- Improved settings window sizing behavior to keep a compact default width without logs and dynamically expand when logs are shown
+
+- Fixed
+
+- Prevented oversized settings width from persisting when debug logs are turned off
+
 ## [v1.12.21] - 2026-03-12
 
 - Changed

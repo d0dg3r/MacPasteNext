@@ -316,8 +316,15 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         let savedHeight = CGFloat(settings.windowHeight)
         let defaultWidth: CGFloat = settings.showLogs ? 980 : 420
 
-        let width = max(settings.showLogs ? minWidthWithLogs : minWidthWithoutLogs, savedWidth > 0 ? savedWidth : defaultWidth)
+        // Keep compact width when logs are hidden, and expand when logs are visible.
+        let width: CGFloat
+        if settings.showLogs {
+            width = max(minWidthWithLogs, savedWidth > 0 ? savedWidth : defaultWidth)
+        } else {
+            width = minWidthWithoutLogs
+        }
         let height = max(minHeight, savedHeight > 0 ? savedHeight : 760)
+        window.minSize = NSSize(width: settings.showLogs ? minWidthWithLogs : minWidthWithoutLogs, height: minHeight)
         window.setContentSize(NSSize(width: width, height: height))
     }
 
@@ -956,14 +963,16 @@ struct ContentView: View {
                                 appDelegate.updateWindowLayout()
                             }
                         
-                        Divider()
-                        
-                        HStack {
-                            Button(Translator.get("sim_copy", lang: settings.language)) {
-                                appDelegate.eventHandler?.simulateCopy()
-                            }
-                            Button(Translator.get("sim_paste", lang: settings.language)) {
-                                appDelegate.eventHandler?.simulatePaste(at: NSEvent.mouseLocation)
+                        if settings.showLogs {
+                            Divider()
+                            
+                            HStack {
+                                Button(Translator.get("sim_copy", lang: settings.language)) {
+                                    appDelegate.eventHandler?.simulateCopy()
+                                }
+                                Button(Translator.get("sim_paste", lang: settings.language)) {
+                                    appDelegate.eventHandler?.simulatePaste(at: NSEvent.mouseLocation)
+                                }
                             }
                         }
                         
