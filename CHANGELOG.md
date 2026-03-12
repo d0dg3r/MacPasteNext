@@ -12,6 +12,17 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 - GitHub issue and pull request templates
 - Funding metadata for GitHub Sponsors
 
+## [v1.12.21] - 2026-03-12
+
+- Changed
+
+- Simplified settings view by hiding the permission troubleshooting section unless onboarding is incomplete or accessibility permission is missing
+- Added a compact all-set permission state for onboarding-complete users with valid accessibility access
+
+- Fixed
+
+- Reduced persistent settings noise when permissions are healthy and onboarding is already done
+
 ## [v1.12.20] - 2026-03-12
 
 - Fixed
