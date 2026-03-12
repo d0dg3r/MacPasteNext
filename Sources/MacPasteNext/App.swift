@@ -37,6 +37,7 @@ struct Translator {
         "menu_activate": ["en": "Activate", "de": "Aktivieren"],
         "menu_mic_off": ["en": "Mic Feature Off", "de": "Mic-Feature aus"],
         "menu_mic_on": ["en": "Mic Feature On", "de": "Mic-Feature an"],
+        "menu_open_settings": ["en": "Open Settings", "de": "Einstellungen öffnen"],
         "menu_quit": ["en": "Quit", "de": "Beenden"],
         "menu_about": ["en": "About MacPasteNext...", "de": "Über MacPasteNext..."],
         "menu_help": ["en": "Help", "de": "Hilfe"],
@@ -52,20 +53,28 @@ struct Translator {
         "acc_step_2": ["en": "2) Return here and click 'Refresh Permission Status'.", "de": "2) Komm zurück und klicke auf 'Berechtigungsstatus aktualisieren'."],
         "acc_step_3": ["en": "3) If it still fails, run the reset button once and try again.", "de": "3) Falls es weiter fehlschlägt, nutze einmal den Reset-Button und versuche es erneut."],
         "service_paused_no_access": ["en": "Service is paused until Accessibility is granted.", "de": "Der Dienst ist pausiert, bis Bedienungshilfen-Zugriff erteilt wurde."],
+        "perm_diag_title": ["en": "Permission diagnostics", "de": "Berechtigungsdiagnose"],
+        "perm_not_checked": ["en": "Last check: not triggered yet", "de": "Letzte Prüfung: noch nicht ausgelöst"],
+        "perm_last_check_prefix": ["en": "Last check:", "de": "Letzte Prüfung:"],
+        "perm_checks_prefix": ["en": "Refresh attempts:", "de": "Aktualisierungsversuche:"],
         "onboarding_title": ["en": "Welcome to MacPasteNext", "de": "Willkommen bei MacPasteNext"],
         "onboarding_body": ["en": "MacPasteNext runs in the menu bar.\n\nGrant Accessibility permission first, then use the status icon to control features and open settings.", "de": "MacPasteNext läuft in der Menüleiste.\n\nErteile zuerst die Bedienungshilfen-Berechtigung und nutze dann das Status-Icon für Features und Einstellungen."],
         "onboarding_button": ["en": "Get Started", "de": "Los geht's"],
         "about_info": [
-            "en": "Linux-style middle-click paste for macOS plus microphone toggle.\n\nCreated by Joe Mild.",
-            "de": "Linux-Mittelklick-Paste für macOS plus Mikrofon-Toggle.\n\nCreated by Joe Mild."
+            "en": "MacPasteNext. Because middle-click just makes sense.\n\nLinux-style middle-click paste for macOS plus microphone toggle.\n\nCreated by Joe Mild. Forced by macOS weirdness, fueled by stubbornness.",
+            "de": "MacPasteNext. Weil Mittelklick einfach Sinn ergibt.\n\nLinux-Mittelklick-Paste für macOS plus Mikrofon-Toggle.\n\nCreated by Joe Mild. Von macOS-Absurditäten dazu gezwungen, mit Sturheit zu Ende gebaut."
+        ],
+        "app_slogan": [
+            "en": "MacPasteNext. Because middle-click just makes sense.",
+            "de": "MacPasteNext. Weil Mittelklick einfach Sinn ergibt."
         ],
         "about_btn_ok": ["en": "OK", "de": "OK"],
         "about_btn_repo": ["en": "GitHub Repository", "de": "GitHub Repository"],
         "about_btn_sponsors": ["en": "GitHub Sponsors", "de": "GitHub Sponsors"],
         "about_btn_releases": ["en": "Release Notes", "de": "Release Notes"],
         "creator_credit": [
-            "en": "Created by Joe Mild. Because in 2026, he was still absolutely sick of macOS being too stupid for basic Linux copy & paste. Sometimes you just have to fix this shit yourself.",
-            "de": "Erschaffen von Joe Mild. Weil er 2026 immer noch die Schnauze voll davon hatte, dass macOS zu dumm für simples Linux-Copy&Paste ist. Manchmal muss man den Kram einfach selbst fixen."
+            "en": "Forced by macOS, Joe Mild somehow became the creator of this app. If the platform had a normal middle-click paste, this project would never have existed.",
+            "de": "macOS hat Joe Mild praktisch dazu gezwungen, der Creator dieser App zu werden. Hätte die Plattform normales Mittelklick-Paste, gäbe es dieses Projekt gar nicht."
         ]
     ]
     
@@ -185,6 +194,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     var micStatusTimer: Timer?
     var toggleMenuItem: NSMenuItem?
     var micMuteMenuItem: NSMenuItem?
+    var openSettingsMenuItem: NSMenuItem?
     var permissionRefreshMenuItem: NSMenuItem?
     var quitMenuItem: NSMenuItem?
     var discussionsMenuItem: NSMenuItem?
@@ -357,7 +367,14 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         
         let l = settings.language
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: appVersionTitle, action: #selector(showWindow), keyEquivalent: ""))
+        let versionItem = NSMenuItem(title: appVersionTitle, action: nil, keyEquivalent: "")
+        versionItem.isEnabled = false
+        menu.addItem(versionItem)
+
+        let openSettingsItem = NSMenuItem(title: Translator.get("menu_open_settings", lang: l), action: #selector(showWindow), keyEquivalent: "")
+        openSettingsItem.target = self
+        menu.addItem(openSettingsItem)
+        menu.addItem(NSMenuItem.separator())
         
         let toggleItem = NSMenuItem(title: "", action: #selector(toggleEnabled), keyEquivalent: "")
         toggleItem.target = self
@@ -407,6 +424,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         
         toggleMenuItem = toggleItem
         micMuteMenuItem = micMuteItem
+        openSettingsMenuItem = openSettingsItem
         permissionRefreshMenuItem = permissionItem
         quitMenuItem = quitItem
         aboutMenuItem = aboutItem
@@ -558,7 +576,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         let bundleId = Bundle.main.bundleIdentifier ?? "unknown.bundle"
         let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? short
-        let payload = "MacPasteNext \(short) (\(build)) | \(bundleId) | git@github.com:d0dg3r/MacPasteNext.git"
+        let payload = "MacPasteNext \(short) (\(build)) | \(bundleId) | https://github.com/d0dg3r/MacPasteNext"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(payload, forType: .string)
         logStore.add("Copied version/build info to clipboard")
@@ -598,6 +616,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
             let l = settings.language
             toggleMenuItem?.title = Translator.get(settings.isEnabled ? "menu_deactivate" : "menu_activate", lang: l)
             micMuteMenuItem?.title = Translator.get(settings.enableMicMute ? "menu_mic_off" : "menu_mic_on", lang: l)
+            openSettingsMenuItem?.title = Translator.get("menu_open_settings", lang: l)
             permissionRefreshMenuItem?.title = Translator.get("update_status", lang: l)
             quitMenuItem?.title = Translator.get("menu_quit", lang: l)
             aboutMenuItem?.title = Translator.get("menu_about", lang: l)
@@ -666,6 +685,8 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         alert.messageText = Translator.get("onboarding_title", lang: l)
         alert.informativeText = Translator.get("onboarding_body", lang: l)
         alert.alertStyle = .informational
+        // Hide default app icon in onboarding hint popup.
+        alert.icon = NSImage(size: NSSize(width: 1, height: 1))
         alert.addButton(withTitle: Translator.get("onboarding_button", lang: l))
         alert.runModal()
         settings.hasCompletedOnboarding = true
@@ -745,8 +766,23 @@ struct ContentView: View {
     @ObservedObject var logStore: LogStore
     var appDelegate: MacPasteAppDelegate
     @State var isAccessibilityGranted: Bool
+    @State private var lastPermissionRefreshAt: Date? = nil
+    @State private var permissionRefreshAttempts: Int = 0
+
+    private func permissionDiagnosticsText() -> String {
+        let l = settings.language
+        guard let lastPermissionRefreshAt else {
+            return Translator.get("perm_not_checked", lang: l)
+        }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .medium
+        return "\(Translator.get("perm_last_check_prefix", lang: l)) \(formatter.string(from: lastPermissionRefreshAt))"
+    }
 
     private func refreshAccessibilityStatus() {
+        permissionRefreshAttempts += 1
+        lastPermissionRefreshAt = Date()
         appDelegate.checkAccessibility()
         isAccessibilityGranted = appDelegate.isAccessibilityGranted
         appDelegate.updateMenu()
@@ -764,6 +800,11 @@ struct ContentView: View {
                 
                 Text(Translator.get("status_title", lang: settings.language))
                     .font(.title)
+                Text(Translator.get("app_slogan", lang: settings.language))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 8)
                 
                 if !isAccessibilityGranted {
                     VStack {
@@ -784,6 +825,19 @@ struct ContentView: View {
                             Text(Translator.get("acc_step_1", lang: settings.language))
                             Text(Translator.get("acc_step_2", lang: settings.language))
                             Text(Translator.get("acc_step_3", lang: settings.language))
+                        }
+                        .font(.caption)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(8)
+                        .background(Color(NSColor.controlBackgroundColor))
+                        .cornerRadius(8)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(Translator.get("perm_diag_title", lang: settings.language))
+                                .font(.subheadline)
+                                .bold()
+                            Text(permissionDiagnosticsText())
+                            Text("\(Translator.get("perm_checks_prefix", lang: settings.language)) \(permissionRefreshAttempts)")
                         }
                         .font(.caption)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -812,7 +866,7 @@ struct ContentView: View {
                             task.arguments = ["reset", "Accessibility", "io.github.joemild.macpastenext"]
                             task.launch()
                             task.waitUntilExit()
-                            appDelegate.checkAccessibility()
+                            refreshAccessibilityStatus()
                         }
                         .buttonStyle(.bordered)
                         .tint(.red)
@@ -829,6 +883,9 @@ struct ContentView: View {
                         refreshAccessibilityStatus()
                     }
                     .buttonStyle(.bordered)
+                    Text(permissionDiagnosticsText())
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 
                 Divider()

@@ -82,6 +82,14 @@ security import "$P12_FILE" \
   -T /usr/bin/security
 security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
 
+echo "==> Checking imported signing identities"
+IDENTITY_LIST="$(security find-identity -v -p codesigning "$KEYCHAIN_NAME" || true)"
+echo "$IDENTITY_LIST"
+if ! echo "$IDENTITY_LIST" | grep -Fq "$MAC_CERT_IDENTITY"; then
+  echo "Expected signing identity not found in keychain: $MAC_CERT_IDENTITY"
+  exit 1
+fi
+
 echo "==> Signing app with identity: $MAC_CERT_IDENTITY"
 codesign --force --deep --sign "$MAC_CERT_IDENTITY" "$APP_PATH"
 

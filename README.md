@@ -8,6 +8,8 @@
 
 **MacPasteNext** is a lightweight, background macOS application that finally brings the beloved Linux X11-style middle-click copy-paste functionality to your Mac. In addition, it packs an elegant system-wide microphone mute toggle mapped directly to your mouse buttons, complete with colorized visual feedback in your menu bar.
 
+MacPasteNext. Because middle-click just makes sense.
+
 ## Features
 
 - 🖱 **Auto-Copy on Selection**: Highlight text in *any* app, and it is instantly copied to your clipboard.
@@ -152,10 +154,10 @@ Community contributions to deal with macOS quirks are welcome. See `CONTRIBUTING
 
 ## Support and Reporting
 
-- Usage/setup questions: GitHub Discussions (`/discussions`)
-- Bug reports: GitHub Issues (bug template)
-- Security vulnerabilities: GitHub Security Advisory (private)
-- Code of Conduct concerns: contact maintainer via GitHub profile
+- Usage/setup questions: [GitHub Discussions](https://github.com/d0dg3r/MacPasteNext/discussions)
+- Bug reports: [GitHub Issues](https://github.com/d0dg3r/MacPasteNext/issues)
+- Security vulnerabilities: [GitHub Security Advisory](https://github.com/d0dg3r/MacPasteNext/security/advisories/new) (private)
+- Code of Conduct concerns: [Maintainer profile](https://github.com/d0dg3r)
 
 ## Project Health
 
