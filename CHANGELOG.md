@@ -12,6 +12,13 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 - GitHub issue and pull request templates
 - Funding metadata for GitHub Sponsors
 
+## [v1.12.20] - 2026-03-12
+
+- Fixed
+
+- Corrected self-signed release guard to verify certificate import with `security find-certificate` instead of rejecting runners that report zero valid identities in `find-identity`
+- Restored successful release signing flow for CI while keeping explicit keychain certificate presence validation
+
 ## [v1.12.19] - 2026-03-12
 
 - Changed
