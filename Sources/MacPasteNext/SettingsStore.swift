@@ -2,6 +2,15 @@ import Foundation
 import SwiftUI
 
 class SettingsStore: ObservableObject {
+    private static func inferredDefaultLanguage() -> String {
+        let systemLang = Locale.preferredLanguages.first?.lowercased() ?? "en"
+        if systemLang.hasPrefix("de") {
+            return "de"
+        }
+        // Fallback to English for unknown/unsupported locales.
+        return "en"
+    }
+
     @AppStorage("autoCopyOnSelect") var autoCopyOnSelect: Bool = true
     @AppStorage("middleClickPaste") var middleClickPaste: Bool = true
     @AppStorage("pasteDelayMs") var pasteDelayMs: Double = 100.0 // delay in ms
@@ -13,6 +22,6 @@ class SettingsStore: ObservableObject {
     @AppStorage("lastMicVolume") var lastMicVolume: Int = 100
     
     // UI Settings
-    @AppStorage("language") var language: String = "de" // "de" or "en"
+    @AppStorage("language") var language: String = inferredDefaultLanguage() // "de" or "en"
     @AppStorage("showLogs") var showLogs: Bool = false
 }

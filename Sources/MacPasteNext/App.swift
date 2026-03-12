@@ -37,6 +37,22 @@ struct Translator {
         "menu_mic_off": ["en": "Mic Feature Off", "de": "Mic-Feature aus"],
         "menu_mic_on": ["en": "Mic Feature On", "de": "Mic-Feature an"],
         "menu_quit": ["en": "Quit", "de": "Beenden"],
+        "menu_about": ["en": "About MacPasteNext...", "de": "Über MacPasteNext..."],
+        "menu_help": ["en": "Help", "de": "Hilfe"],
+        "help_repo": ["en": "Open Project Repository", "de": "Projekt-Repo öffnen"],
+        "help_issue": ["en": "Report Issue", "de": "Issue melden"],
+        "help_releases": ["en": "Releases", "de": "Releases"],
+        "help_discussions": ["en": "Discussions", "de": "Discussions"],
+        "help_copy_build": ["en": "Copy Version/Build Info", "de": "Version/Build-ID kopieren"],
+        "help_sponsors": ["en": "GitHub Sponsors", "de": "GitHub Sponsors"],
+        "about_info": [
+            "en": "Linux-style middle-click paste for macOS plus microphone toggle.\n\nCreated by Joe Mild.",
+            "de": "Linux-Mittelklick-Paste für macOS plus Mikrofon-Toggle.\n\nCreated by Joe Mild."
+        ],
+        "about_btn_ok": ["en": "OK", "de": "OK"],
+        "about_btn_repo": ["en": "GitHub Repository", "de": "GitHub Repository"],
+        "about_btn_sponsors": ["en": "GitHub Sponsors", "de": "GitHub Sponsors"],
+        "about_btn_releases": ["en": "Release Notes", "de": "Release Notes"],
         "creator_credit": [
             "en": "Created by Joe Mild. Because in 2026, he was still absolutely sick of macOS being too stupid for basic Linux copy & paste. Sometimes you just have to fix this shit yourself.",
             "de": "Erschaffen von Joe Mild. Weil er 2026 immer noch die Schnauze voll davon hatte, dass macOS zu dumm für simples Linux-Copy&Paste ist. Manchmal muss man den Kram einfach selbst fixen."
@@ -112,6 +128,14 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     var micMuteMenuItem: NSMenuItem?
     var quitMenuItem: NSMenuItem?
     var discussionsMenuItem: NSMenuItem?
+    var aboutMenuItem: NSMenuItem?
+    var helpMenuItem: NSMenuItem?
+    var helpRepoMenuItem: NSMenuItem?
+    var helpIssueMenuItem: NSMenuItem?
+    var helpReleasesMenuItem: NSMenuItem?
+    var helpDiscussionsMenuItem: NSMenuItem?
+    var helpCopyBuildMenuItem: NSMenuItem?
+    var helpSponsorsMenuItem: NSMenuItem?
     var hasDiscussionsEnabled: Bool = false
     @Published var isMicMuted: Bool = false
     
@@ -237,21 +261,28 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
             button.target = self
         }
         
+        let l = settings.language
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: appVersionTitle, action: #selector(showWindow), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "About MacPasteNext...", action: #selector(showAbout), keyEquivalent: ""))
+        let aboutItem = NSMenuItem(title: Translator.get("menu_about", lang: l), action: #selector(showAbout), keyEquivalent: "")
+        menu.addItem(aboutItem)
 
-        let helpItem = NSMenuItem(title: "Hilfe", action: nil, keyEquivalent: "")
+        let helpItem = NSMenuItem(title: Translator.get("menu_help", lang: l), action: nil, keyEquivalent: "")
         let helpMenu = NSMenu()
-        helpMenu.addItem(NSMenuItem(title: "Projekt-Repo öffnen", action: #selector(openProjectRepo), keyEquivalent: ""))
-        helpMenu.addItem(NSMenuItem(title: "Issue melden", action: #selector(openIssues), keyEquivalent: ""))
-        helpMenu.addItem(NSMenuItem(title: "Releases", action: #selector(openReleases), keyEquivalent: ""))
-        let discussionsItem = NSMenuItem(title: "Discussions", action: #selector(openDiscussions), keyEquivalent: "")
+        let repoItem = NSMenuItem(title: Translator.get("help_repo", lang: l), action: #selector(openProjectRepo), keyEquivalent: "")
+        helpMenu.addItem(repoItem)
+        let issueItem = NSMenuItem(title: Translator.get("help_issue", lang: l), action: #selector(openIssues), keyEquivalent: "")
+        helpMenu.addItem(issueItem)
+        let releasesItem = NSMenuItem(title: Translator.get("help_releases", lang: l), action: #selector(openReleases), keyEquivalent: "")
+        helpMenu.addItem(releasesItem)
+        let discussionsItem = NSMenuItem(title: Translator.get("help_discussions", lang: l), action: #selector(openDiscussions), keyEquivalent: "")
         discussionsItem.isHidden = !hasDiscussionsEnabled
         helpMenu.addItem(discussionsItem)
-        helpMenu.addItem(NSMenuItem(title: "Version/Build-ID kopieren", action: #selector(copyVersionInfo), keyEquivalent: ""))
+        let copyBuildItem = NSMenuItem(title: Translator.get("help_copy_build", lang: l), action: #selector(copyVersionInfo), keyEquivalent: "")
+        helpMenu.addItem(copyBuildItem)
         helpMenu.addItem(NSMenuItem.separator())
-        helpMenu.addItem(NSMenuItem(title: "GitHub Sponsors", action: #selector(openSponsors), keyEquivalent: ""))
+        let sponsorsItem = NSMenuItem(title: Translator.get("help_sponsors", lang: l), action: #selector(openSponsors), keyEquivalent: "")
+        helpMenu.addItem(sponsorsItem)
         for item in helpMenu.items {
             item.target = self
         }
@@ -275,6 +306,14 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         toggleMenuItem = toggleItem
         micMuteMenuItem = micMuteItem
         quitMenuItem = quitItem
+        aboutMenuItem = aboutItem
+        helpMenuItem = helpItem
+        helpRepoMenuItem = repoItem
+        helpIssueMenuItem = issueItem
+        helpReleasesMenuItem = releasesItem
+        helpDiscussionsMenuItem = discussionsItem
+        helpCopyBuildMenuItem = copyBuildItem
+        helpSponsorsMenuItem = sponsorsItem
         discussionsMenuItem = discussionsItem
         statusItem?.menu = menu
         updateMenu()
@@ -292,14 +331,11 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func showAbout() {
+        let l = settings.language
+        let displayVersion = appVersionTitle.replacingOccurrences(of: "MacPasteNext ", with: "")
         let alert = NSAlert()
-        alert.messageText = "MacPasteNext \(appVersionTitle.replacingOccurrences(of: "MacPasteNext ", with: ""))"
-        alert.informativeText = """
-        Linux-style middle-click paste for macOS plus microphone toggle.
-        Linux-Mittelklick-Paste fuer macOS plus Mikrofon-Toggle.
-
-        Created by Joe Mild.
-        """
+        alert.messageText = "MacPasteNext \(displayVersion)"
+        alert.informativeText = Translator.get("about_info", lang: l)
         alert.alertStyle = .informational
 
         if let path = Bundle.main.path(forResource: "banner", ofType: "png"),
@@ -310,18 +346,19 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
             alert.accessoryView = imageView
         }
 
-        alert.addButton(withTitle: "GitHub Repository")
-        alert.addButton(withTitle: "GitHub Sponsors")
-        alert.addButton(withTitle: "Release Notes")
-        alert.addButton(withTitle: "OK")
+        // Keep OK as first/default button so stray clicks never trigger external links.
+        alert.addButton(withTitle: Translator.get("about_btn_ok", lang: l))
+        alert.addButton(withTitle: Translator.get("about_btn_repo", lang: l))
+        alert.addButton(withTitle: Translator.get("about_btn_sponsors", lang: l))
+        alert.addButton(withTitle: Translator.get("about_btn_releases", lang: l))
 
         let response = alert.runModal()
         switch response {
-        case .alertFirstButtonReturn:
-            NSWorkspace.shared.open(repoWebURL)
         case .alertSecondButtonReturn:
-            NSWorkspace.shared.open(sponsorsWebURL)
+            NSWorkspace.shared.open(repoWebURL)
         case .alertThirdButtonReturn:
+            NSWorkspace.shared.open(sponsorsWebURL)
+        case .alertFourthButtonReturn:
             NSWorkspace.shared.open(releasesWebURL)
         default:
             break
@@ -383,6 +420,14 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
             toggleMenuItem?.title = Translator.get(settings.isEnabled ? "menu_deactivate" : "menu_activate", lang: l)
             micMuteMenuItem?.title = Translator.get(settings.enableMicMute ? "menu_mic_off" : "menu_mic_on", lang: l)
             quitMenuItem?.title = Translator.get("menu_quit", lang: l)
+            aboutMenuItem?.title = Translator.get("menu_about", lang: l)
+            helpMenuItem?.title = Translator.get("menu_help", lang: l)
+            helpRepoMenuItem?.title = Translator.get("help_repo", lang: l)
+            helpIssueMenuItem?.title = Translator.get("help_issue", lang: l)
+            helpReleasesMenuItem?.title = Translator.get("help_releases", lang: l)
+            helpDiscussionsMenuItem?.title = Translator.get("help_discussions", lang: l)
+            helpCopyBuildMenuItem?.title = Translator.get("help_copy_build", lang: l)
+            helpSponsorsMenuItem?.title = Translator.get("help_sponsors", lang: l)
             discussionsMenuItem?.isHidden = !hasDiscussionsEnabled
             
             if let button = statusItem?.button {
