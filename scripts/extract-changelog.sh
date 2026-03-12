@@ -4,9 +4,10 @@ set -euo pipefail
 TAG="${1:-}"
 CHANGELOG_FILE="${2:-CHANGELOG.md}"
 OUTPUT_FILE="${3:-release-notes.md}"
+MODE="${4:-allow-missing}"
 
 if [ -z "$TAG" ]; then
-  echo "Usage: $0 <tag> [changelog_file] [output_file]"
+  echo "Usage: $0 <tag> [changelog_file] [output_file] [allow-missing|require-entry]"
   exit 1
 fi
 
@@ -15,7 +16,7 @@ if [ ! -f "$CHANGELOG_FILE" ]; then
   exit 1
 fi
 
-python3 - "$TAG" "$CHANGELOG_FILE" "$OUTPUT_FILE" <<'PY'
+python3 - "$TAG" "$CHANGELOG_FILE" "$OUTPUT_FILE" "$MODE" <<'PY'
 import re
 import sys
 from pathlib import Path
@@ -23,6 +24,7 @@ from pathlib import Path
 tag = sys.argv[1]
 changelog_path = Path(sys.argv[2])
 output_path = Path(sys.argv[3])
+mode = sys.argv[4]
 
 text = changelog_path.read_text(encoding="utf-8")
 lines = text.splitlines()
@@ -40,6 +42,9 @@ for i, line in enumerate(lines):
         break
 
 if start_idx is None:
+    if mode == "require-entry":
+        print(f"ERROR: No changelog entry found for tag {tag}", file=sys.stderr)
+        sys.exit(2)
     output_path.write_text(
         f"## {tag}\n\nNo changelog entry found for this tag.\n",
         encoding="utf-8",

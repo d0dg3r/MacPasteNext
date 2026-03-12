@@ -268,8 +268,16 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     
     func updateWindowLayout() {
         guard let window else { return }
-        let width: CGFloat = settings.showLogs ? 980 : 420
-        let height: CGFloat = 760
+        let minWidthWithoutLogs: CGFloat = 420
+        let minWidthWithLogs: CGFloat = 940
+        let minHeight: CGFloat = 620
+
+        let savedWidth = CGFloat(settings.windowWidth)
+        let savedHeight = CGFloat(settings.windowHeight)
+        let defaultWidth = settings.showLogs ? 980 : 420
+
+        let width = max(settings.showLogs ? minWidthWithLogs : minWidthWithoutLogs, savedWidth > 0 ? savedWidth : defaultWidth)
+        let height = max(minHeight, savedHeight > 0 ? savedHeight : 760)
         window.setContentSize(NSSize(width: width, height: height))
     }
 
@@ -281,16 +289,24 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
             isAccessibilityGranted: isAccessibilityGranted
         )
         
+        let initialWidth = max(420, CGFloat(settings.windowWidth))
+        let initialHeight = max(620, CGFloat(settings.windowHeight))
+
         window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 760),
+            contentRect: NSRect(x: 0, y: 0, width: initialWidth, height: initialHeight),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
-        window.center()
         window.title = Translator.get("status_title", lang: settings.language)
         window.minSize = NSSize(width: 420, height: 620)
+        if settings.hasSavedWindowPosition {
+            window.setFrameOrigin(NSPoint(x: settings.windowPosX, y: settings.windowPosY))
+        } else {
+            window.center()
+        }
         
         let finalHostingView = NSHostingView(rootView: contentView)
         window.contentView = finalHostingView
+        window.delegate = self
         updateWindowLayout()
     }
 
@@ -435,6 +451,16 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     private func closeAboutWindow() {
         aboutWindow?.close()
         aboutWindow = nil
+    }
+
+    private func persistMainWindowFrame() {
+        guard let window else { return }
+        let frame = window.frame
+        settings.windowWidth = Double(frame.size.width)
+        settings.windowHeight = Double(frame.size.height)
+        settings.windowPosX = Double(frame.origin.x)
+        settings.windowPosY = Double(frame.origin.y)
+        settings.hasSavedWindowPosition = true
     }
 
     @objc func openProjectRepo() {
@@ -608,6 +634,16 @@ extension MacPasteAppDelegate: NSWindowDelegate {
         if closingWindow == aboutWindow {
             aboutWindow = nil
         }
+    }
+
+    func windowDidResize(_ notification: Notification) {
+        guard let resizedWindow = notification.object as? NSWindow, resizedWindow == window else { return }
+        persistMainWindowFrame()
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        guard let movedWindow = notification.object as? NSWindow, movedWindow == window else { return }
+        persistMainWindowFrame()
     }
 }
 

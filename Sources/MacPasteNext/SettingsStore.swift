@@ -24,4 +24,9 @@ class SettingsStore: ObservableObject {
     // UI Settings
     @AppStorage("language") var language: String = inferredDefaultLanguage() // "de" or "en"
     @AppStorage("showLogs") var showLogs: Bool = false
+    @AppStorage("windowWidth") var windowWidth: Double = 420
+    @AppStorage("windowHeight") var windowHeight: Double = 760
+    @AppStorage("windowPosX") var windowPosX: Double = 0
+    @AppStorage("windowPosY") var windowPosY: Double = 0
+    @AppStorage("hasSavedWindowPosition") var hasSavedWindowPosition: Bool = false
 }

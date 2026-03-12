@@ -12,6 +12,21 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 - GitHub issue and pull request templates
 - Funding metadata for GitHub Sponsors
 
+## [v1.12.13] - 2026-03-12
+
+- Changed
+
+- Added release quality gates for tag builds (required files + required changelog entry)
+- Extended smoke tests to validate resources and bundle version metadata
+- Added dark and light documentation screenshots shown side by side in README
+- Persisted main window size/position for a more stable desktop UX between launches
+
+## [v1.12.12] - 2026-03-12
+
+- Added
+
+- Automated GitHub release notes generation from tag-specific CHANGELOG entries
+
 ## [v1.12.10] - 2026-03-12
 
 - Changed

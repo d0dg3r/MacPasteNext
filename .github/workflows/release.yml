@@ -22,11 +22,17 @@ jobs:
       - name: Ensure scripts executable
         run: chmod +x scripts/*.sh
 
+      - name: Validate tag release inputs
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME}"
+          ./scripts/validate-release-inputs.sh "$TAG_NAME"
+
       - name: Generate release notes from changelog
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           TAG_NAME="${GITHUB_REF_NAME}"
-          ./scripts/extract-changelog.sh "$TAG_NAME" CHANGELOG.md release-notes.md
+          ./scripts/extract-changelog.sh "$TAG_NAME" CHANGELOG.md release-notes.md require-entry
 
       - name: Build app bundle
         run: ./scripts/build-release.sh

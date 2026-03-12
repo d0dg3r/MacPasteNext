@@ -16,6 +16,12 @@
 - 🌍 **Localization**: Fluent in both English and German.
 - 🐞 **Debug Friendly**: Fully integrated real-time logging console visible directly in the app.
 
+## Screenshots
+
+| Dark Mode | Light Mode |
+| --- | --- |
+| ![MacPasteNext Dark Mode](assets/screenshot-dark.png) | ![MacPasteNext Light Mode](assets/screenshot-light.png) |
+
 ## Installation
 
 Currently you must build the app from source:

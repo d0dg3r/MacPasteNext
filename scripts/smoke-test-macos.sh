@@ -24,6 +24,23 @@ if [ "$BUNDLE_ID" != "$EXPECTED_BUNDLE_ID" ]; then
   exit 1
 fi
 
+echo "==> Checking release metadata"
+SHORT_VERSION="$(plutil -extract CFBundleShortVersionString raw "$APP_PATH/Contents/Info.plist")"
+BUILD_VERSION="$(plutil -extract CFBundleVersion raw "$APP_PATH/Contents/Info.plist")"
+if [ -z "$SHORT_VERSION" ] || [ -z "$BUILD_VERSION" ]; then
+  echo "Missing CFBundleShortVersionString or CFBundleVersion"
+  exit 1
+fi
+echo "Version: $SHORT_VERSION ($BUILD_VERSION)"
+
+echo "==> Checking required app resources"
+for resource in "banner.png" "appicon.png" "AppIcon.icns"; do
+  if [ ! -f "$APP_PATH/Contents/Resources/$resource" ]; then
+    echo "Missing resource: $resource"
+    exit 1
+  fi
+done
+
 echo "==> Verifying codesign signature"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 SIGN_INFO="$(codesign -dv --verbose=4 "$APP_PATH" 2>&1)"
