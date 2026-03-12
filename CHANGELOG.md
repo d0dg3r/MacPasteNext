@@ -12,6 +12,17 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 - GitHub issue and pull request templates
 - Funding metadata for GitHub Sponsors
 
+## [v1.12.18] - 2026-03-12
+
+- Changed
+
+- Published combined release of CI/release hardening, app onboarding/permission diagnostics, log export, and governance/template updates
+
+- Fixed
+
+- Restored robust certificate decoding fallback in `sign-selfsigned.sh` for CI secrets with base64 formatting quirks
+- Prevented release signing failures caused by overly strict base64 validation
+
 ## [v1.12.17] - 2026-03-12
 
 - Added

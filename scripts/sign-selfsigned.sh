@@ -52,8 +52,17 @@ raw = os.environ["MAC_CERT_P12_BASE64"]
 clean = "".join(raw.split())
 try:
     decoded = base64.b64decode(clean, validate=True)
-except binascii.Error as exc:
-    print(f"Invalid MAC_CERT_P12_BASE64 payload: {exc}", file=sys.stderr)
+except binascii.Error:
+    # Some CI secrets are stored with formatting/padding quirks.
+    # Fallback keeps compatibility while still failing on unusable payloads.
+    try:
+        decoded = base64.b64decode(clean, validate=False)
+    except binascii.Error as exc:
+        print(f"Invalid MAC_CERT_P12_BASE64 payload: {exc}", file=sys.stderr)
+        sys.exit(2)
+
+if not decoded:
+    print("Decoded MAC_CERT_P12_BASE64 payload is empty", file=sys.stderr)
     sys.exit(2)
 pathlib.Path(os.environ["P12_FILE"]).write_bytes(decoded)
 PY
