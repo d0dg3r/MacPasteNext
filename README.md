@@ -25,6 +25,9 @@
 These screenshots can be refreshed using the GitHub Actions workflow:
 
 - `Capture macOS Screenshots` (`.github/workflows/screenshots.yml`)
+- The workflow creates real macOS screenshots and commits updates to:
+  - `assets/screenshot-dark.png`
+  - `assets/screenshot-light.png`
 
 ## Installation
 

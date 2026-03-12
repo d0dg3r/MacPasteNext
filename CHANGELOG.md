@@ -12,6 +12,15 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 - GitHub issue and pull request templates
 - Funding metadata for GitHub Sponsors
 
+## [v1.12.16] - 2026-03-12
+
+- Changed
+
+- Upgraded GitHub Actions to latest major versions for checkout and artifact upload
+- Enabled Node 24 execution mode in CI workflows for future compatibility
+- Added automatic commit-back of generated screenshots to the repository
+- Documented screenshot workflow behavior in README
+
 ## [v1.12.15] - 2026-03-12
 
 - Added

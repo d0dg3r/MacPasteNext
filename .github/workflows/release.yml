@@ -13,11 +13,12 @@ jobs:
   build-sign-smoke:
     runs-on: macos-14
     env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
       APP_BUNDLE_ID: io.github.joemild.macpastenext
       APP_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || format('dev-{0}', github.sha) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Ensure scripts executable
         run: chmod +x scripts/*.sh
@@ -56,7 +57,7 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent dist/MacPasteNext.app dist/MacPasteNext-macos-arm64.zip
 
       - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: MacPasteNext-macos-arm64
           path: dist/MacPasteNext-macos-arm64.zip

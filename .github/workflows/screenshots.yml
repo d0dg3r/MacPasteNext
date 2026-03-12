@@ -3,12 +3,17 @@ name: Capture macOS Screenshots
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   capture-screenshots:
     runs-on: macos-14
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Ensure scripts executable
         run: chmod +x scripts/*.sh
@@ -23,9 +28,19 @@ jobs:
         run: ./scripts/capture-screenshots-macos.sh dist/MacPasteNext.app assets
 
       - name: Upload screenshot artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: MacPasteNext-screenshots
           path: |
             assets/screenshot-dark.png
             assets/screenshot-light.png
+
+      - name: Commit updated screenshots to repository
+        run: |
+          if git diff --quiet -- assets/screenshot-dark.png assets/screenshot-light.png; then
+            echo "No screenshot changes detected."
+            exit 0
+          fi
+          git add assets/screenshot-dark.png assets/screenshot-light.png
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "chore: update generated app screenshots"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
