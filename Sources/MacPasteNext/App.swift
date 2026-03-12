@@ -65,8 +65,8 @@ struct Translator {
             "de": "MacPasteNext. Weil Mittelklick einfach Sinn ergibt.\n\nLinux-Mittelklick-Paste für macOS plus Mikrofon-Toggle.\n\nCreated by Joe Mild. Von macOS-Absurditäten dazu gezwungen, mit Sturheit zu Ende gebaut."
         ],
         "app_slogan": [
-            "en": "MacPasteNext. Because middle-click just makes sense.",
-            "de": "MacPasteNext. Weil Mittelklick einfach Sinn ergibt."
+            "en": "Because middle-click just makes sense.",
+            "de": "Because middle-click just makes sense."
         ],
         "about_btn_ok": ["en": "OK", "de": "OK"],
         "about_btn_repo": ["en": "GitHub Repository", "de": "GitHub Repository"],
