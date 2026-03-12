@@ -150,6 +150,13 @@ xattr -dr com.apple.quarantine /Applications/MacPasteNext.app
 
 Community contributions to deal with macOS quirks are welcome. See `CONTRIBUTING.md` for our contribution guidelines.
 
+## Support and Reporting
+
+- Usage/setup questions: GitHub Discussions (`/discussions`)
+- Bug reports: GitHub Issues (bug template)
+- Security vulnerabilities: GitHub Security Advisory (private)
+- Code of Conduct concerns: contact maintainer via GitHub profile
+
 ## Project Health
 
 - Roadmap: `ROADMAP.md`

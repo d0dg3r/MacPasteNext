@@ -29,6 +29,8 @@ What happened instead?
 - macOS version:
 - MacPasteNext version/tag:
 - Installation source (Release ZIP / local build):
+- Is this a regression? (yes/no):
+- Last known working version/tag:
 
 ## Permissions State
 
@@ -38,3 +40,12 @@ What happened instead?
 ## Logs / Screenshots
 
 Add logs or screenshots if available.
+
+Preferred log format:
+
+```text
+[timestamp] message
+[timestamp] message
+```
+
+If possible, attach exported logs from the app menu (`Help -> Export Debug Logs...`).

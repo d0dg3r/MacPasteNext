@@ -11,7 +11,10 @@ class EventHandler {
     
     private var isDragging = false
     private var lastClickTime: TimeInterval = 0
+    private var lastMouseDownWasDoubleClick = false
     private let doubleClickThreshold: TimeInterval = 0.5
+    private var lastAutoCopyTriggerTime: TimeInterval = 0
+    private let autoCopyDebounceSeconds: TimeInterval = 0.3
     
     init(settings: SettingsStore, logStore: LogStore) {
         self.settings = settings
@@ -58,7 +61,9 @@ class EventHandler {
         switch event.type {
         case .leftMouseDown:
             logStore.add("Input: Left Mouse Down (App: \(event.window == nil ? "Outside" : "Inside"))")
-            lastClickTime = Date().timeIntervalSince1970
+            let now = Date().timeIntervalSince1970
+            lastMouseDownWasDoubleClick = (now - lastClickTime) < doubleClickThreshold
+            lastClickTime = now
             isDragging = false
             
         case .leftMouseDragged:
@@ -66,10 +71,16 @@ class EventHandler {
             
         case .leftMouseUp:
             let now = Date().timeIntervalSince1970
-            let isDoubleClick = (now - lastClickTime) < doubleClickThreshold
+            let isDoubleClick = lastMouseDownWasDoubleClick
             logStore.add("Input: Left Mouse Up (drag: \(isDragging), doubleClick: \(isDoubleClick))")
             
             if settings.autoCopyOnSelect && (isDragging || isDoubleClick) {
+                if now - lastAutoCopyTriggerTime < autoCopyDebounceSeconds {
+                    logStore.add("Action: Auto-copy skipped by debounce guard")
+                    isDragging = false
+                    return
+                }
+                lastAutoCopyTriggerTime = now
                 logStore.add("Action: Conditions met, triggering Copy (Cmd+C)")
                 simulateCopy()
             }

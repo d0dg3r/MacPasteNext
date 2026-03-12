@@ -1,6 +1,7 @@
 import SwiftUI
 import OSLog
 import AppKit
+import UniformTypeIdentifiers
 
 let appLogger = Logger(subsystem: "io.github.joemild.macpastenext", category: "App")
 
@@ -44,7 +45,16 @@ struct Translator {
         "help_releases": ["en": "Releases", "de": "Releases"],
         "help_discussions": ["en": "Discussions", "de": "Discussions"],
         "help_copy_build": ["en": "Copy Version/Build Info", "de": "Version/Build-ID kopieren"],
+        "help_export_logs": ["en": "Export Debug Logs...", "de": "Debug-Logs exportieren..."],
         "help_sponsors": ["en": "GitHub Sponsors", "de": "GitHub Sponsors"],
+        "acc_steps_title": ["en": "Next steps", "de": "Nächste Schritte"],
+        "acc_step_1": ["en": "1) Open System Settings and allow Accessibility access for MacPasteNext.", "de": "1) Öffne die Systemeinstellungen und erlaube Bedienungshilfen-Zugriff für MacPasteNext."],
+        "acc_step_2": ["en": "2) Return here and click 'Refresh Permission Status'.", "de": "2) Komm zurück und klicke auf 'Berechtigungsstatus aktualisieren'."],
+        "acc_step_3": ["en": "3) If it still fails, run the reset button once and try again.", "de": "3) Falls es weiter fehlschlägt, nutze einmal den Reset-Button und versuche es erneut."],
+        "service_paused_no_access": ["en": "Service is paused until Accessibility is granted.", "de": "Der Dienst ist pausiert, bis Bedienungshilfen-Zugriff erteilt wurde."],
+        "onboarding_title": ["en": "Welcome to MacPasteNext", "de": "Willkommen bei MacPasteNext"],
+        "onboarding_body": ["en": "MacPasteNext runs in the menu bar.\n\nGrant Accessibility permission first, then use the status icon to control features and open settings.", "de": "MacPasteNext läuft in der Menüleiste.\n\nErteile zuerst die Bedienungshilfen-Berechtigung und nutze dann das Status-Icon für Features und Einstellungen."],
+        "onboarding_button": ["en": "Get Started", "de": "Los geht's"],
         "about_info": [
             "en": "Linux-style middle-click paste for macOS plus microphone toggle.\n\nCreated by Joe Mild.",
             "de": "Linux-Mittelklick-Paste für macOS plus Mikrofon-Toggle.\n\nCreated by Joe Mild."
@@ -185,6 +195,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     var helpReleasesMenuItem: NSMenuItem?
     var helpDiscussionsMenuItem: NSMenuItem?
     var helpCopyBuildMenuItem: NSMenuItem?
+    var helpExportLogsMenuItem: NSMenuItem?
     var helpSponsorsMenuItem: NSMenuItem?
     var hasDiscussionsEnabled: Bool = false
     @Published var isMicMuted: Bool = false
@@ -220,6 +231,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         setupMenuBar()
         refreshRepositoryMetadata()
         createMainWindow()
+        presentFirstRunOnboardingIfNeeded()
         if ProcessInfo.processInfo.environment["MACPASTE_FORCE_SHOW_WINDOW"] == "1" {
             createAndShowWindow()
         }
@@ -377,6 +389,8 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         helpMenu.addItem(discussionsItem)
         let copyBuildItem = NSMenuItem(title: Translator.get("help_copy_build", lang: l), action: #selector(copyVersionInfo), keyEquivalent: "")
         helpMenu.addItem(copyBuildItem)
+        let exportLogsItem = NSMenuItem(title: Translator.get("help_export_logs", lang: l), action: #selector(exportDebugLogs), keyEquivalent: "")
+        helpMenu.addItem(exportLogsItem)
         helpMenu.addItem(NSMenuItem.separator())
         let sponsorsItem = NSMenuItem(title: Translator.get("help_sponsors", lang: l), action: #selector(openSponsors), keyEquivalent: "")
         helpMenu.addItem(sponsorsItem)
@@ -402,6 +416,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         helpReleasesMenuItem = releasesItem
         helpDiscussionsMenuItem = discussionsItem
         helpCopyBuildMenuItem = copyBuildItem
+        helpExportLogsMenuItem = exportLogsItem
         helpSponsorsMenuItem = sponsorsItem
         discussionsMenuItem = discussionsItem
         statusItem?.menu = menu
@@ -499,6 +514,46 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.open(sponsorsWebURL)
     }
 
+    @objc func exportDebugLogs() {
+        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? short
+        let header = [
+            "MacPasteNext Debug Logs",
+            "Version: \(short) (\(build))",
+            "Generated: \(ISO8601DateFormatter().string(from: Date()))",
+            ""
+        ].joined(separator: "\n")
+        let payload = header + logStore.logs.joined(separator: "\n") + "\n"
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        let suggestedName = "MacPasteNext-logs-\(formatter.string(from: Date())).txt"
+
+        let panel = NSSavePanel()
+        panel.canCreateDirectories = true
+        panel.nameFieldStringValue = suggestedName
+        panel.allowedContentTypes = [.plainText]
+        if let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first {
+            panel.directoryURL = desktop
+        }
+
+        if panel.runModal() == .OK, let url = panel.url {
+            do {
+                try payload.write(to: url, atomically: true, encoding: .utf8)
+                logStore.add("Exported debug logs to \(url.path)")
+            } catch {
+                logStore.add("Failed to export debug logs: \(error.localizedDescription)")
+                let alert = NSAlert()
+                alert.messageText = "Export failed"
+                alert.informativeText = error.localizedDescription
+                alert.alertStyle = .warning
+                alert.runModal()
+            }
+        } else {
+            logStore.add("Debug log export cancelled")
+        }
+    }
+
     @objc func copyVersionInfo() {
         let bundleId = Bundle.main.bundleIdentifier ?? "unknown.bundle"
         let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
@@ -552,6 +607,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
             helpReleasesMenuItem?.title = Translator.get("help_releases", lang: l)
             helpDiscussionsMenuItem?.title = Translator.get("help_discussions", lang: l)
             helpCopyBuildMenuItem?.title = Translator.get("help_copy_build", lang: l)
+            helpExportLogsMenuItem?.title = Translator.get("help_export_logs", lang: l)
             helpSponsorsMenuItem?.title = Translator.get("help_sponsors", lang: l)
             discussionsMenuItem?.isHidden = !hasDiscussionsEnabled
             
@@ -592,6 +648,27 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }.resume()
+    }
+
+    private func presentFirstRunOnboardingIfNeeded() {
+        if settings.hasCompletedOnboarding {
+            return
+        }
+        if ProcessInfo.processInfo.environment["MACPASTE_FORCE_SHOW_WINDOW"] == "1" {
+            // Keep screenshot/automation runs non-interactive.
+            settings.hasCompletedOnboarding = true
+            return
+        }
+
+        let l = settings.language
+        createAndShowWindow()
+        let alert = NSAlert()
+        alert.messageText = Translator.get("onboarding_title", lang: l)
+        alert.informativeText = Translator.get("onboarding_body", lang: l)
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: Translator.get("onboarding_button", lang: l))
+        alert.runModal()
+        settings.hasCompletedOnboarding = true
     }
     
     // Helper to draw a colored background and a symbol on top
@@ -696,6 +773,24 @@ struct ContentView: View {
                         Text(Translator.get("acc_desc", lang: settings.language))
                             .multilineTextAlignment(.center)
                             .padding()
+                        Text(Translator.get("service_paused_no_access", lang: settings.language))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(Translator.get("acc_steps_title", lang: settings.language))
+                                .font(.subheadline)
+                                .bold()
+                            Text(Translator.get("acc_step_1", lang: settings.language))
+                            Text(Translator.get("acc_step_2", lang: settings.language))
+                            Text(Translator.get("acc_step_3", lang: settings.language))
+                        }
+                        .font(.caption)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(8)
+                        .background(Color(NSColor.controlBackgroundColor))
+                        .cornerRadius(8)
+
                         Button(Translator.get("open_sys_prefs", lang: settings.language)) {
                             let urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
                             if let url = URL(string: urlString) {

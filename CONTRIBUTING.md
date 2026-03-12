@@ -31,3 +31,7 @@ The application logic resides in `Sources/MacPasteNext/EventHandler.swift` (glob
 ## Bug Reports
 
 If you find a bug, please search existing issues to see if it has been reported before submitting a new one. Provide exact steps yielding the bug. If it relates to copying/pasting, make sure you mention which external app the focus was on (e.g. VS Code, Chrome, etc. can behave non-standardly!).
+
+## Support Questions
+
+If your topic is setup/help/troubleshooting (not a reproducible bug), please use GitHub Discussions instead of opening an issue.

@@ -29,4 +29,5 @@ class SettingsStore: ObservableObject {
     @AppStorage("windowPosX") var windowPosX: Double = 0
     @AppStorage("windowPosY") var windowPosY: Double = 0
     @AppStorage("hasSavedWindowPosition") var hasSavedWindowPosition: Bool = false
+    @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding: Bool = false
 }

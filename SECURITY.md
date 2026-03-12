@@ -24,6 +24,12 @@ Include:
 - Impact and affected versions
 - Any suggested mitigation
 
+Out of scope for security reporting:
+
+- General usage/support questions
+- Feature requests
+- UI/UX improvements without security impact
+
 ## Response Process
 
 The project will:
@@ -32,6 +38,19 @@ The project will:
 2. Validate and reproduce
 3. Prepare a fix
 4. Publish a patched release and advisory notes when appropriate
+
+Target response timelines:
+
+- Initial acknowledgment: within 72 hours
+- Triage outcome (confirmed / needs-info / rejected): within 7 days
+- Critical/high issues: prioritized for the next patch release
+
+Severity guidance:
+
+- Critical: remote code execution, privilege escalation, credential/key compromise
+- High: meaningful local security bypass or sensitive data exposure
+- Medium: limited-impact abuse paths requiring specific preconditions
+- Low: hard-to-exploit or low-impact issues
 
 ## Scope Notes
 

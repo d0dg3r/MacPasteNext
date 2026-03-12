@@ -30,7 +30,12 @@ This Code of Conduct applies within all project spaces, including issues, pull r
 
 ## Reporting
 
-To report behavior that violates this Code of Conduct, open a private security report via GitHub Security Advisory or contact the maintainer through GitHub.
+To report behavior that violates this Code of Conduct:
+
+- Contact the maintainer directly via GitHub profile: <https://github.com/d0dg3r>
+- Or open a moderation request in repository discussions: <https://github.com/d0dg3r/MacPasteNext/discussions>
+
+Do not use the security advisory channel for Code of Conduct cases unless there is an actual security vulnerability.
 
 ## Enforcement
 
