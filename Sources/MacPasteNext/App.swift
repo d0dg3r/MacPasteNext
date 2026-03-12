@@ -274,7 +274,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
 
         let savedWidth = CGFloat(settings.windowWidth)
         let savedHeight = CGFloat(settings.windowHeight)
-        let defaultWidth = settings.showLogs ? 980 : 420
+        let defaultWidth: CGFloat = settings.showLogs ? 980 : 420
 
         let width = max(settings.showLogs ? minWidthWithLogs : minWidthWithoutLogs, savedWidth > 0 ? savedWidth : defaultWidth)
         let height = max(minHeight, savedHeight > 0 ? savedHeight : 760)
