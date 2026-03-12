@@ -1,0 +1,31 @@
+name: Capture macOS Screenshots
+
+on:
+  workflow_dispatch:
+
+jobs:
+  capture-screenshots:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure scripts executable
+        run: chmod +x scripts/*.sh
+
+      - name: Build app bundle
+        env:
+          APP_BUNDLE_ID: io.github.joemild.macpastenext
+          APP_VERSION: screenshot-${{ github.sha }}
+        run: ./scripts/build-release.sh
+
+      - name: Capture dark/light screenshots
+        run: ./scripts/capture-screenshots-macos.sh dist/MacPasteNext.app assets
+
+      - name: Upload screenshot artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MacPasteNext-screenshots
+          path: |
+            assets/screenshot-dark.png
+            assets/screenshot-light.png

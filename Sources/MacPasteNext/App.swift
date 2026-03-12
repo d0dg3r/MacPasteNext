@@ -207,6 +207,9 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         setupMenuBar()
         refreshRepositoryMetadata()
         createMainWindow()
+        if ProcessInfo.processInfo.environment["MACPASTE_FORCE_SHOW_WINDOW"] == "1" {
+            createAndShowWindow()
+        }
         closeUnexpectedStartupWindows()
         
         if settings.isEnabled && isAccessibilityGranted {

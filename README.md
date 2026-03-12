@@ -22,6 +22,10 @@
 | --- | --- |
 | ![MacPasteNext Dark Mode](assets/screenshot-dark.png) | ![MacPasteNext Light Mode](assets/screenshot-light.png) |
 
+These screenshots can be refreshed using the GitHub Actions workflow:
+
+- `Capture macOS Screenshots` (`.github/workflows/screenshots.yml`)
+
 ## Installation
 
 Currently you must build the app from source:

@@ -12,6 +12,18 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 - GitHub issue and pull request templates
 - Funding metadata for GitHub Sponsors
 
+## [v1.12.15] - 2026-03-12
+
+- Added
+
+- New workflow `Capture macOS Screenshots` to produce real app screenshots on macOS runners
+- New script `scripts/capture-screenshots-macos.sh` for dark/light screenshot automation
+
+- Changed
+
+- README now links screenshot refresh process to the workflow
+- App launch supports `MACPASTE_FORCE_SHOW_WINDOW=1` to enable automated screenshot capture
+
 ## [v1.12.14] - 2026-03-12
 
 - Changed
@@ -19,6 +31,7 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 - Added release quality gates for tag builds (required files + required changelog entry)
 - Extended smoke tests to validate resources and bundle version metadata
 - Added dark and light documentation screenshots shown side by side in README
+- Added workflow support for capturing real macOS screenshots
 - Persisted main window size/position for a more stable desktop UX between launches
 - Added contributor Definition of Done checklist
 
