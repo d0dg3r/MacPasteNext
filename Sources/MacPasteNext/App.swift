@@ -136,8 +136,13 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 guard let self else { return }
                 for candidate in NSApp.windows where candidate != self.window {
-                    candidate.orderOut(nil)
-                    candidate.close()
+                    let title = candidate.title.lowercased()
+                    // Only close the auto-created empty SwiftUI Settings window.
+                    // Never touch other system/app windows to avoid breaking status item interactions.
+                    if title.contains("settings") {
+                        candidate.orderOut(nil)
+                        candidate.close()
+                    }
                 }
             }
         }
