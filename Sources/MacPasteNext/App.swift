@@ -95,12 +95,24 @@ struct AppLogoView: View {
 }
 
 class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
+    private let repoWebURL = URL(string: "https://github.com/d0dg3r/MacPasteNext")!
+    private let issuesWebURL = URL(string: "https://github.com/d0dg3r/MacPasteNext/issues")!
+    private let releasesWebURL = URL(string: "https://github.com/d0dg3r/MacPasteNext/releases")!
+    private let discussionsWebURL = URL(string: "https://github.com/d0dg3r/MacPasteNext/discussions")!
+    private let sponsorsWebURL = URL(string: "https://github.com/sponsors/d0dg3r")!
+    private let repoApiURL = URL(string: "https://api.github.com/repos/d0dg3r/MacPasteNext")!
+
     var settings = SettingsStore()
     var logStore = LogStore()
     var eventHandler: EventHandler?
     var statusItem: NSStatusItem?
     var window: NSWindow!
     var micStatusTimer: Timer?
+    var toggleMenuItem: NSMenuItem?
+    var micMuteMenuItem: NSMenuItem?
+    var quitMenuItem: NSMenuItem?
+    var discussionsMenuItem: NSMenuItem?
+    var hasDiscussionsEnabled: Bool = false
     @Published var isMicMuted: Bool = false
     
     @Published var isAccessibilityGranted: Bool = false
@@ -119,6 +131,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         
         checkAccessibility()
         setupMenuBar()
+        refreshRepositoryMetadata()
         createMainWindow()
         closeUnexpectedStartupWindows()
         
@@ -226,6 +239,24 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: appVersionTitle, action: #selector(showWindow), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "About MacPasteNext...", action: #selector(showAbout), keyEquivalent: ""))
+
+        let helpItem = NSMenuItem(title: "Hilfe", action: nil, keyEquivalent: "")
+        let helpMenu = NSMenu()
+        helpMenu.addItem(NSMenuItem(title: "Projekt-Repo öffnen", action: #selector(openProjectRepo), keyEquivalent: ""))
+        helpMenu.addItem(NSMenuItem(title: "Issue melden", action: #selector(openIssues), keyEquivalent: ""))
+        helpMenu.addItem(NSMenuItem(title: "Releases", action: #selector(openReleases), keyEquivalent: ""))
+        let discussionsItem = NSMenuItem(title: "Discussions", action: #selector(openDiscussions), keyEquivalent: "")
+        discussionsItem.isHidden = !hasDiscussionsEnabled
+        helpMenu.addItem(discussionsItem)
+        helpMenu.addItem(NSMenuItem(title: "Version/Build-ID kopieren", action: #selector(copyVersionInfo), keyEquivalent: ""))
+        helpMenu.addItem(NSMenuItem.separator())
+        helpMenu.addItem(NSMenuItem(title: "GitHub Sponsors", action: #selector(openSponsors), keyEquivalent: ""))
+        for item in helpMenu.items {
+            item.target = self
+        }
+        helpItem.submenu = helpMenu
+        menu.addItem(helpItem)
         menu.addItem(NSMenuItem.separator())
         
         let toggleItem = NSMenuItem(title: "", action: #selector(toggleEnabled), keyEquivalent: "")
@@ -241,6 +272,10 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         let quitItem = NSMenuItem(title: "", action: #selector(terminate), keyEquivalent: "q")
         menu.addItem(quitItem)
         
+        toggleMenuItem = toggleItem
+        micMuteMenuItem = micMuteItem
+        quitMenuItem = quitItem
+        discussionsMenuItem = discussionsItem
         statusItem?.menu = menu
         updateMenu()
         logStore.add("NSStatusItem setup complete.")
@@ -254,6 +289,64 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc func showAbout() {
+        let alert = NSAlert()
+        alert.messageText = "MacPasteNext \(appVersionTitle.replacingOccurrences(of: "MacPasteNext ", with: ""))"
+        alert.informativeText = """
+        Linux-style middle-click paste for macOS plus microphone toggle.
+        Linux-Mittelklick-Paste fuer macOS plus Mikrofon-Toggle.
+
+        Created by Joe Mild.
+        """
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "GitHub Repository")
+        alert.addButton(withTitle: "GitHub Sponsors")
+        alert.addButton(withTitle: "Release Notes")
+        alert.addButton(withTitle: "OK")
+
+        let response = alert.runModal()
+        switch response {
+        case .alertFirstButtonReturn:
+            NSWorkspace.shared.open(repoWebURL)
+        case .alertSecondButtonReturn:
+            NSWorkspace.shared.open(sponsorsWebURL)
+        case .alertThirdButtonReturn:
+            NSWorkspace.shared.open(releasesWebURL)
+        default:
+            break
+        }
+    }
+
+    @objc func openProjectRepo() {
+        NSWorkspace.shared.open(repoWebURL)
+    }
+
+    @objc func openIssues() {
+        NSWorkspace.shared.open(issuesWebURL)
+    }
+
+    @objc func openReleases() {
+        NSWorkspace.shared.open(releasesWebURL)
+    }
+
+    @objc func openDiscussions() {
+        NSWorkspace.shared.open(discussionsWebURL)
+    }
+
+    @objc func openSponsors() {
+        NSWorkspace.shared.open(sponsorsWebURL)
+    }
+
+    @objc func copyVersionInfo() {
+        let bundleId = Bundle.main.bundleIdentifier ?? "unknown.bundle"
+        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? short
+        let payload = "MacPasteNext \(short) (\(build)) | \(bundleId) | git@github.com:d0dg3r/MacPasteNext.git"
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(payload, forType: .string)
+        logStore.add("Copied version/build info to clipboard")
     }
     
     @objc func toggleEnabled() {
@@ -276,19 +369,12 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func updateMenu() {
-        if let menu = statusItem?.menu {
+        if statusItem?.menu != nil {
             let l = settings.language
-            let toggleItem = menu.item(at: 2) // Toggle button
-            toggleItem?.title = Translator.get(settings.isEnabled ? "menu_deactivate" : "menu_activate", lang: l)
-            
-            if menu.items.count > 4 {
-                let micItem = menu.item(at: 4)
-                micItem?.title = Translator.get(settings.enableMicMute ? "menu_mic_off" : "menu_mic_on", lang: l)
-            }
-            if menu.items.count > 5 {
-                let quitItem = menu.item(at: 5)
-                quitItem?.title = Translator.get("menu_quit", lang: l)
-            }
+            toggleMenuItem?.title = Translator.get(settings.isEnabled ? "menu_deactivate" : "menu_activate", lang: l)
+            micMuteMenuItem?.title = Translator.get(settings.enableMicMute ? "menu_mic_off" : "menu_mic_on", lang: l)
+            quitMenuItem?.title = Translator.get("menu_quit", lang: l)
+            discussionsMenuItem?.isHidden = !hasDiscussionsEnabled
             
             if let button = statusItem?.button {
                 let isMutedEnabled = isMicMuted && settings.enableMicMute
@@ -306,6 +392,27 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+    }
+
+    private func refreshRepositoryMetadata() {
+        var request = URLRequest(url: repoApiURL)
+        request.timeoutInterval = 6
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
+            guard let self else { return }
+            guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode), let data else {
+                return
+            }
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                return
+            }
+            let hasDiscussions = (json["has_discussions"] as? Bool) ?? false
+            if hasDiscussions != self.hasDiscussionsEnabled {
+                DispatchQueue.main.async {
+                    self.hasDiscussionsEnabled = hasDiscussions
+                    self.updateMenu()
+                }
+            }
+        }.resume()
     }
     
     // Helper to draw a colored background and a symbol on top
