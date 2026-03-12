@@ -301,6 +301,15 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         Created by Joe Mild.
         """
         alert.alertStyle = .informational
+
+        if let path = Bundle.main.path(forResource: "banner", ofType: "png"),
+           let image = NSImage(contentsOfFile: path) {
+            let imageView = NSImageView(frame: NSRect(x: 0, y: 0, width: 420, height: 150))
+            imageView.image = image
+            imageView.imageScaling = .scaleProportionallyUpOrDown
+            alert.accessoryView = imageView
+        }
+
         alert.addButton(withTitle: "GitHub Repository")
         alert.addButton(withTitle: "GitHub Sponsors")
         alert.addButton(withTitle: "Release Notes")
