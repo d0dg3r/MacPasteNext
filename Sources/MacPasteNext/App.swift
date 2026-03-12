@@ -57,6 +57,8 @@ struct Translator {
         "perm_not_checked": ["en": "Last check: not triggered yet", "de": "Letzte Prüfung: noch nicht ausgelöst"],
         "perm_last_check_prefix": ["en": "Last check:", "de": "Letzte Prüfung:"],
         "perm_checks_prefix": ["en": "Refresh attempts:", "de": "Aktualisierungsversuche:"],
+        "perm_all_set_title": ["en": "Permissions are all set", "de": "Berechtigungen sind eingerichtet"],
+        "perm_all_set_desc": ["en": "Everything is configured. This section disappears once onboarding is completed.", "de": "Alles ist konfiguriert. Dieser Bereich verschwindet, sobald das Onboarding abgeschlossen ist."],
         "onboarding_title": ["en": "Welcome to MacPasteNext", "de": "Willkommen bei MacPasteNext"],
         "onboarding_body": ["en": "MacPasteNext runs in the menu bar.\n\nGrant Accessibility permission first, then use the status icon to control features and open settings.", "de": "MacPasteNext läuft in der Menüleiste.\n\nErteile zuerst die Bedienungshilfen-Berechtigung und nutze dann das Status-Icon für Features und Einstellungen."],
         "onboarding_button": ["en": "Get Started", "de": "Los geht's"],
@@ -790,6 +792,10 @@ struct ContentView: View {
     @State private var lastPermissionRefreshAt: Date? = nil
     @State private var permissionRefreshAttempts: Int = 0
 
+    private var shouldShowPermissionSection: Bool {
+        !settings.hasCompletedOnboarding || !isAccessibilityGranted
+    }
+
     private func permissionDiagnosticsText() -> String {
         let l = settings.language
         guard let lastPermissionRefreshAt else {
@@ -827,86 +833,92 @@ struct ContentView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 8)
                 
-                if !isAccessibilityGranted {
-                    VStack {
-                        Text(Translator.get("acc_req", lang: settings.language))
-                            .font(.headline)
-                            .foregroundColor(.red)
-                        Text(Translator.get("acc_desc", lang: settings.language))
-                            .multilineTextAlignment(.center)
-                            .padding()
-                        Text(Translator.get("service_paused_no_access", lang: settings.language))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                if shouldShowPermissionSection {
+                    if !isAccessibilityGranted {
+                        VStack {
+                            Text(Translator.get("acc_req", lang: settings.language))
+                                .font(.headline)
+                                .foregroundColor(.red)
+                            Text(Translator.get("acc_desc", lang: settings.language))
+                                .multilineTextAlignment(.center)
+                                .padding()
+                            Text(Translator.get("service_paused_no_access", lang: settings.language))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(Translator.get("acc_steps_title", lang: settings.language))
-                                .font(.subheadline)
-                                .bold()
-                            Text(Translator.get("acc_step_1", lang: settings.language))
-                            Text(Translator.get("acc_step_2", lang: settings.language))
-                            Text(Translator.get("acc_step_3", lang: settings.language))
-                        }
-                        .font(.caption)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(8)
-                        .background(Color(NSColor.controlBackgroundColor))
-                        .cornerRadius(8)
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(Translator.get("perm_diag_title", lang: settings.language))
-                                .font(.subheadline)
-                                .bold()
-                            Text(permissionDiagnosticsText())
-                            Text("\(Translator.get("perm_checks_prefix", lang: settings.language)) \(permissionRefreshAttempts)")
-                        }
-                        .font(.caption)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(8)
-                        .background(Color(NSColor.controlBackgroundColor))
-                        .cornerRadius(8)
-
-                        Button(Translator.get("open_sys_prefs", lang: settings.language)) {
-                            let urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
-                            if let url = URL(string: urlString) {
-                                NSWorkspace.shared.open(url)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(Translator.get("acc_steps_title", lang: settings.language))
+                                    .font(.subheadline)
+                                    .bold()
+                                Text(Translator.get("acc_step_1", lang: settings.language))
+                                Text(Translator.get("acc_step_2", lang: settings.language))
+                                Text(Translator.get("acc_step_3", lang: settings.language))
                             }
-                        }
-                        .buttonStyle(.borderedProminent)
+                            .font(.caption)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(8)
+                            .background(Color(NSColor.controlBackgroundColor))
+                            .cornerRadius(8)
 
-                        Button(Translator.get("update_status", lang: settings.language)) {
-                            refreshAccessibilityStatus()
-                        }
-                        .buttonStyle(.bordered)
-                        
-                        Divider()
-                        
-                        Button(Translator.get("request_again", lang: settings.language)) {
-                            let task = Process()
-                            task.launchPath = "/usr/bin/tccutil"
-                            task.arguments = ["reset", "Accessibility", "io.github.joemild.macpastenext"]
-                            task.launch()
-                            task.waitUntilExit()
-                            refreshAccessibilityStatus()
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.red)
-                    }
-                    .padding()
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(10)
-                } else {
-                    Text(Translator.get("acc_granted", lang: settings.language))
-                        .foregroundColor(.green)
-                    Text(Translator.get(settings.isEnabled ? "status_active" : "status_inactive", lang: settings.language))
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(Translator.get("perm_diag_title", lang: settings.language))
+                                    .font(.subheadline)
+                                    .bold()
+                                Text(permissionDiagnosticsText())
+                                Text("\(Translator.get("perm_checks_prefix", lang: settings.language)) \(permissionRefreshAttempts)")
+                            }
+                            .font(.caption)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(8)
+                            .background(Color(NSColor.controlBackgroundColor))
+                            .cornerRadius(8)
 
-                    Button(Translator.get("update_status", lang: settings.language)) {
-                        refreshAccessibilityStatus()
+                            Button(Translator.get("open_sys_prefs", lang: settings.language)) {
+                                let urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+                                if let url = URL(string: urlString) {
+                                    NSWorkspace.shared.open(url)
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+
+                            Button(Translator.get("update_status", lang: settings.language)) {
+                                refreshAccessibilityStatus()
+                            }
+                            .buttonStyle(.bordered)
+                            
+                            Divider()
+                            
+                            Button(Translator.get("request_again", lang: settings.language)) {
+                                let task = Process()
+                                task.launchPath = "/usr/bin/tccutil"
+                                task.arguments = ["reset", "Accessibility", "io.github.joemild.macpastenext"]
+                                task.launch()
+                                task.waitUntilExit()
+                                refreshAccessibilityStatus()
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(.red)
+                        }
+                        .padding()
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(10)
+                    } else {
+                        VStack(spacing: 8) {
+                            Text(Translator.get("perm_all_set_title", lang: settings.language))
+                                .foregroundColor(.green)
+                            Text(Translator.get("perm_all_set_desc", lang: settings.language))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                            Button(Translator.get("update_status", lang: settings.language)) {
+                                refreshAccessibilityStatus()
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        .padding()
+                        .background(Color.green.opacity(0.08))
+                        .cornerRadius(10)
                     }
-                    .buttonStyle(.bordered)
-                    Text(permissionDiagnosticsText())
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 }
                 
                 Divider()
