@@ -23,29 +23,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
-set_dark_mode() {
-  defaults write -g AppleInterfaceStyle -string Dark || true
-  killall cfprefsd >/dev/null 2>&1 || true
-}
-
-set_light_mode() {
-  defaults delete -g AppleInterfaceStyle >/dev/null 2>&1 || true
-  killall cfprefsd >/dev/null 2>&1 || true
-}
-
 capture_mode() {
   local mode="$1"
   local out_file="$2"
 
-  if [ "$mode" = "dark" ]; then
-    set_dark_mode
-  else
-    set_light_mode
-  fi
-
   cleanup
   sleep 1
-  MACPASTE_FORCE_SHOW_WINDOW=1 "$BIN_PATH" >/tmp/macpastenext-screenshot.log 2>&1 &
+  MACPASTE_FORCE_SHOW_WINDOW=1 MACPASTE_FORCE_APPEARANCE="$mode" "$BIN_PATH" >/tmp/macpastenext-screenshot.log 2>&1 &
   APP_PID=$!
   sleep 4
 
@@ -66,5 +50,11 @@ capture_mode "dark" "$OUTPUT_DIR/screenshot-dark.png"
 
 echo "==> Capturing light mode screenshot"
 capture_mode "light" "$OUTPUT_DIR/screenshot-light.png"
+
+echo "==> Verifying screenshots are different"
+if cmp -s "$OUTPUT_DIR/screenshot-dark.png" "$OUTPUT_DIR/screenshot-light.png"; then
+  echo "Dark and light screenshots are identical. Failing capture."
+  exit 1
+fi
 
 echo "Screenshots written to $OUTPUT_DIR"

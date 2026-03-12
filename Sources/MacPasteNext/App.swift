@@ -198,10 +198,23 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         let normalized = value.hasPrefix("v") ? value : "v\(value)"
         return "MacPasteNext \(normalized)"
     }
+
+    private func applyForcedAppearanceIfRequested() {
+        let forced = ProcessInfo.processInfo.environment["MACPASTE_FORCE_APPEARANCE"]?.lowercased()
+        switch forced {
+        case "dark":
+            NSApp.appearance = NSAppearance(named: .darkAqua)
+        case "light":
+            NSApp.appearance = NSAppearance(named: .aqua)
+        default:
+            break
+        }
+    }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         logStore.add("Application did finish launching")
         NSApp.setActivationPolicy(.accessory) // Show in menu bar, allow windows
+        applyForcedAppearanceIfRequested()
         
         checkAccessibility()
         setupMenuBar()
