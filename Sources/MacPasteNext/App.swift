@@ -340,10 +340,11 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
 
         if let path = Bundle.main.path(forResource: "banner", ofType: "png"),
            let image = NSImage(contentsOfFile: path) {
-            let imageView = NSImageView(frame: NSRect(x: 0, y: 0, width: 420, height: 150))
-            imageView.image = image
-            imageView.imageScaling = .scaleProportionallyUpOrDown
-            alert.accessoryView = imageView
+            let banner = NSImage(size: NSSize(width: 128, height: 80))
+            banner.lockFocus()
+            image.draw(in: NSRect(x: 0, y: 0, width: 128, height: 80))
+            banner.unlockFocus()
+            alert.icon = banner
         }
 
         // Keep OK as first/default button so stray clicks never trigger external links.
