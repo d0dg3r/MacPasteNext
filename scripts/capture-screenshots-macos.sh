@@ -4,6 +4,7 @@ set -euo pipefail
 APP_PATH="${1:-dist/MacPasteNext.app}"
 OUTPUT_DIR="${2:-assets}"
 BIN_PATH="$APP_PATH/Contents/MacOS/MacPasteNext"
+LOG_FILE="$(mktemp -t macpastenext-screenshot.XXXXXX.log)"
 
 if [ ! -d "$APP_PATH" ]; then
   echo "App bundle not found: $APP_PATH"
@@ -20,6 +21,7 @@ mkdir -p "$OUTPUT_DIR"
 cleanup() {
   osascript -e 'tell application "MacPasteNext" to quit' >/dev/null 2>&1 || true
   pkill -f "MacPasteNext.app/Contents/MacOS/MacPasteNext" >/dev/null 2>&1 || true
+  rm -f "$LOG_FILE"
 }
 trap cleanup EXIT
 
@@ -29,7 +31,7 @@ capture_mode() {
 
   cleanup
   sleep 1
-  MACPASTE_FORCE_SHOW_WINDOW=1 MACPASTE_FORCE_APPEARANCE="$mode" "$BIN_PATH" >/tmp/macpastenext-screenshot.log 2>&1 &
+  MACPASTE_FORCE_SHOW_WINDOW=1 MACPASTE_FORCE_APPEARANCE="$mode" "$BIN_PATH" >"$LOG_FILE" 2>&1 &
   APP_PID=$!
   sleep 4
 

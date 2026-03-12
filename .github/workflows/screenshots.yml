@@ -41,6 +41,14 @@ jobs:
             echo "No screenshot changes detected."
             exit 0
           fi
+          if [ "${GITHUB_REF_TYPE}" != "branch" ]; then
+            echo "Skipping push because ref type is '${GITHUB_REF_TYPE}', expected 'branch'."
+            exit 0
+          fi
           git add assets/screenshot-dark.png assets/screenshot-light.png
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "chore: update generated app screenshots"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          if ! git push origin "HEAD:${GITHUB_REF_NAME}"; then
+            echo "Failed to push generated screenshots to '${GITHUB_REF_NAME}'."
+            echo "Check branch protection rules and workflow write permissions (contents: write)."
+            exit 1
+          fi

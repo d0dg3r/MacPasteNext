@@ -1,0 +1,30 @@
+name: Preflight Checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  scripts-and-changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Ensure scripts executable
+        run: chmod +x scripts/*.sh
+
+      - name: Validate shell script syntax
+        run: |
+          bash -n scripts/build-release.sh
+          bash -n scripts/sign-selfsigned.sh
+          bash -n scripts/smoke-test-macos.sh
+          bash -n scripts/validate-release-inputs.sh
+          bash -n scripts/capture-screenshots-macos.sh
+
+      - name: Validate changelog extraction script
+        run: |
+          ./scripts/extract-changelog.sh v0.0.0 CHANGELOG.md /tmp/release-notes.md allow-missing
+          test -s /tmp/release-notes.md

@@ -32,6 +32,13 @@ jobs:
             fi
           done
 
+      - name: Validate release scripts syntax
+        run: |
+          bash -n scripts/build-release.sh
+          bash -n scripts/sign-selfsigned.sh
+          bash -n scripts/smoke-test-macos.sh
+          bash -n scripts/validate-release-inputs.sh
+
       - name: Validate tag release inputs
         if: startsWith(github.ref, 'refs/tags/')
         run: |
