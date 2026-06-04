@@ -282,7 +282,7 @@ class EventHandler {
             let postCopyChangeCount = pb.changeCount
             if let s = captured, !s.isEmpty {
                 primaryBuffer = s
-                logStore.add("PRIMARY buffer updated (\(s.count) chars)")
+                logStore.add("PRIMARY buffer updated (\(s.count) chars): \(Self.previewForLog(s))")
             } else {
                 logStore.add("PRIMARY: clipboard changed but no string payload; buffer kept")
             }
@@ -345,6 +345,24 @@ class EventHandler {
                 self.logStore.add("PRIMARY: clipboard changed externally during paste, restore skipped")
             }
         }
+    }
+
+    // MARK: - Log helpers
+
+    /// Single-line preview of a captured string, suitable for the debug console.
+    /// Truncates at 30 chars and replaces newlines / tabs with visible markers
+    /// so multi-line selections don't blow up the log layout.
+    private static func previewForLog(_ s: String) -> String {
+        let cleaned = s
+            .replacingOccurrences(of: "\n", with: "⏎")
+            .replacingOccurrences(of: "\r", with: "")
+            .replacingOccurrences(of: "\t", with: "→")
+        let maxLen = 30
+        if cleaned.count <= maxLen {
+            return "\"\(cleaned)\""
+        }
+        let prefix = cleaned.prefix(maxLen)
+        return "\"\(prefix)…\""
     }
 
     // MARK: - Microphone

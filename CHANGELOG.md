@@ -10,6 +10,23 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 
 - Reset release strategy to start at `v1.0.0-beta.N` with clear pre-release/final separation.
 
+## [v1.0.0-beta.5] - 2026-06-04
+
+- Added
+
+- New "Updates" section in the settings panel with a toggle to enable or disable Sparkle's background update checks. The previously menu-only "Check for Updates..." action is now also available as a button next to the toggle.
+- Tooltips on every settings toggle and picker (auto-copy, middle-click paste, mic mute, mouse-button picker, language, log console). Hover over an option to learn what it does.
+- About dialog now shows the configured Sparkle update feed URL so users can verify which channel they are pulling updates from.
+- PRIMARY capture log entries include a short, sanitized preview of the captured text (newlines / tabs rendered as visible markers, truncated at 30 chars) instead of just the length.
+
+- Changed
+
+- `MacPasteAppDelegate.applyAutoUpdatePreference()` keeps `SPUUpdater.automaticallyChecksForUpdates` in sync with the new `autoUpdateEnabled` setting on launch and whenever the user flips the toggle.
+
+- Internal
+
+- Removed `@Published` from properties on `MacPasteAppDelegate`, which is not an `ObservableObject`; the annotations were no-ops and just added noise to the API surface.
+
 ## [v1.0.0-beta.4] - 2026-06-04
 
 - Added

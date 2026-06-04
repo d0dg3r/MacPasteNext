@@ -50,6 +50,16 @@ struct Translator {
         "help_export_logs": ["en": "Export Debug Logs...", "de": "Debug-Logs exportieren..."],
         "help_sponsors": ["en": "GitHub Sponsors", "de": "GitHub Sponsors"],
         "menu_check_updates": ["en": "Check for Updates...", "de": "Nach Updates suchen..."],
+        "auto_update_label": ["en": "Check for updates automatically", "de": "Automatisch nach Updates suchen"],
+        "auto_update_help": ["en": "Sparkle polls the release feed in the background and offers updates when a newer signed build is available.", "de": "Sparkle prueft den Release-Feed im Hintergrund und bietet ein Update an, sobald eine neuere signierte Version verfuegbar ist."],
+        "tip_auto_copy": ["en": "When you select text with the mouse (drag, double-click, triple-click), copy it to MacPasteNext's private PRIMARY buffer. The system clipboard (Cmd+C) is left untouched.", "de": "Wenn du Text mit der Maus auswaehlst (Ziehen, Doppelklick, Dreifachklick), wird die Auswahl in den privaten PRIMARY-Puffer kopiert. Die System-Zwischenablage (Cmd+C) bleibt unveraendert."],
+        "tip_mid_paste": ["en": "Middle-click pastes the PRIMARY buffer wherever your cursor is. The native middle-click of the underlying app is swallowed so nothing pastes twice.", "de": "Mittelklick fuegt den Inhalt des PRIMARY-Puffers an der Cursorposition ein. Der native Mittelklick der darunterliegenden App wird unterdrueckt, damit nichts doppelt eingefuegt wird."],
+        "tip_mic_mute": ["en": "Toggle the system microphone with the selected mouse button. The intercepted press never reaches the OS or other apps.", "de": "Stummschaltung des System-Mikrofons via der gewaehlten Maustaste. Der abgefangene Klick erreicht weder macOS noch andere Apps."],
+        "tip_mouse_btn": ["en": "Which mouse button toggles the microphone. Pick the one your mouse exposes (most thumb buttons report as 3 or 4).", "de": "Welche Maustaste das Mikrofon umschaltet. Waehle die, die deine Maus liefert (Daumentasten melden meist 3 oder 4)."],
+        "tip_show_logs": ["en": "Show the live debug console alongside the settings panel. Useful for troubleshooting capture/paste timing or filing bug reports.", "de": "Zeigt die Live-Debug-Konsole neben dem Einstellungsbereich. Nuetzlich fuer Timing-Diagnose oder Fehlerberichte."],
+        "tip_language": ["en": "Switch the app language. The menu bar and settings update immediately.", "de": "Wechselt die App-Sprache. Menueleiste und Einstellungen werden sofort aktualisiert."],
+        "updates_section": ["en": "Updates", "de": "Updates"],
+        "update_feed_label": ["en": "Update feed", "de": "Update-Feed"],
         "acc_steps_title": ["en": "Next steps", "de": "Nächste Schritte"],
         "acc_step_1": ["en": "1) Open System Settings and allow Accessibility access for MacPasteNext.", "de": "1) Öffne die Systemeinstellungen und erlaube Bedienungshilfen-Zugriff für MacPasteNext."],
         "acc_step_2": ["en": "2) Return here and click 'Refresh Permission Status'.", "de": "2) Komm zurück und klicke auf 'Berechtigungsstatus aktualisieren'."],
@@ -137,6 +147,8 @@ struct AboutDialogView: View {
     let bannerImage: NSImage?
     let versionText: String
     let infoText: String
+    let feedLabel: String
+    let feedURL: String?
     let repoLabel: String
     let sponsorsLabel: String
     let releasesLabel: String
@@ -164,6 +176,21 @@ struct AboutDialogView: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
 
+            if let feedURL {
+                VStack(spacing: 2) {
+                    Text(feedLabel)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text(feedURL)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .textSelection(.enabled)
+                }
+                .frame(maxWidth: .infinity)
+            }
+
             HStack(spacing: 10) {
                 Button(repoLabel, action: onRepo)
                     .buttonStyle(.borderedProminent)
@@ -177,7 +204,7 @@ struct AboutDialogView: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(20)
-        .frame(width: 600, height: 380)
+        .frame(width: 600, height: 420)
     }
 }
 
@@ -222,9 +249,9 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         updaterDelegate: nil,
         userDriverDelegate: nil
     )
-    @Published var isMicMuted: Bool = false
-    
-    @Published var isAccessibilityGranted: Bool = false
+    var isMicMuted: Bool = false
+
+    var isAccessibilityGranted: Bool = false
 
     private var appVersionTitle: String {
         let bundleVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
@@ -265,8 +292,18 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
             logStore.add("Starting service during launch")
             startService()
         }
-        
+
+        applyAutoUpdatePreference()
         startMicStatusPolling()
+    }
+
+    func applyAutoUpdatePreference() {
+        // Touching .updater also starts the controller if needed.
+        let desired = settings.autoUpdateEnabled
+        if updaterController.updater.automaticallyChecksForUpdates != desired {
+            updaterController.updater.automaticallyChecksForUpdates = desired
+        }
+        logStore.add("Sparkle background checks: \(desired ? "enabled" : "disabled")")
     }
 
     private func closeUnexpectedStartupWindows() {
@@ -509,10 +546,13 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        let feedURL = Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") as? String
         let contentView = AboutDialogView(
             bannerImage: banner,
             versionText: displayVersion,
             infoText: Translator.get("about_info", lang: l),
+            feedLabel: Translator.get("update_feed_label", lang: l),
+            feedURL: feedURL,
             repoLabel: Translator.get("about_btn_repo", lang: l),
             sponsorsLabel: Translator.get("about_btn_sponsors", lang: l),
             releasesLabel: Translator.get("about_btn_releases", lang: l),
@@ -524,7 +564,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         )
 
         let newWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 600, height: 380),
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 420),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -970,9 +1010,12 @@ struct ContentView: View {
                         Text(Translator.get("features", lang: settings.language)).font(.headline)
                         
                         Toggle(Translator.get("auto_copy", lang: settings.language), isOn: $settings.autoCopyOnSelect)
+                            .help(Translator.get("tip_auto_copy", lang: settings.language))
                         Toggle(Translator.get("mid_paste", lang: settings.language), isOn: $settings.middleClickPaste)
+                            .help(Translator.get("tip_mid_paste", lang: settings.language))
                         
                         Toggle(Translator.get("mic_mute", lang: settings.language), isOn: $settings.enableMicMute)
+                            .help(Translator.get("tip_mic_mute", lang: settings.language))
                         if settings.enableMicMute {
                             Picker(Translator.get("mouse_btn", lang: settings.language), selection: $settings.micMuteButton) {
                                 Text(Translator.get("btn_2", lang: settings.language)).tag(2)
@@ -980,8 +1023,22 @@ struct ContentView: View {
                                 Text(Translator.get("btn_4", lang: settings.language)).tag(4)
                                 Text(Translator.get("btn_5", lang: settings.language)).tag(5)
                             }
+                            .help(Translator.get("tip_mouse_btn", lang: settings.language))
                         }
-                        
+
+                        Divider()
+                        Text(Translator.get("updates_section", lang: settings.language)).font(.headline)
+
+                        Toggle(Translator.get("auto_update_label", lang: settings.language), isOn: $settings.autoUpdateEnabled)
+                            .help(Translator.get("auto_update_help", lang: settings.language))
+                            .onChange(of: settings.autoUpdateEnabled) { _ in
+                                appDelegate.applyAutoUpdatePreference()
+                            }
+                        Button(Translator.get("menu_check_updates", lang: settings.language)) {
+                            appDelegate.updaterController.checkForUpdates(nil)
+                        }
+                        .buttonStyle(.bordered)
+
                         Divider()
                         Text("UI & Logs").font(.headline)
                         
@@ -989,11 +1046,13 @@ struct ContentView: View {
                             Text("English").tag("en")
                             Text("Deutsch").tag("de")
                         }
+                        .help(Translator.get("tip_language", lang: settings.language))
                         .onChange(of: settings.language) { _ in
                             appDelegate.updateMenu()
                         }
                         
                         Toggle(Translator.get("show_logs", lang: settings.language), isOn: $settings.showLogs)
+                            .help(Translator.get("tip_show_logs", lang: settings.language))
                             .onChange(of: settings.showLogs) { _ in
                                 appDelegate.updateWindowLayout()
                             }

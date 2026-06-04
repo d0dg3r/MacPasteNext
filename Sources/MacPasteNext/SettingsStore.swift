@@ -30,4 +30,8 @@ class SettingsStore: ObservableObject {
     @AppStorage("windowPosY") var windowPosY: Double = 0
     @AppStorage("hasSavedWindowPosition") var hasSavedWindowPosition: Bool = false
     @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding: Bool = false
+
+    // Sparkle background update polling. Mirrors SUUpdater.automaticallyChecksForUpdates;
+    // the "Check for Updates..." menu item works regardless of this toggle.
+    @AppStorage("autoUpdateEnabled") var autoUpdateEnabled: Bool = true
 }
