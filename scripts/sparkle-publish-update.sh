@@ -81,7 +81,14 @@ if [ -z "$ED_SIGNATURE" ] || [ -z "$LENGTH" ]; then
 fi
 echo "sparkle:edSignature length=${LENGTH}"
 
-VERSION_NUM="${TAG#v}"
+# Keep the "v" prefix verbatim so that <sparkle:version> in the appcast
+# matches the CFBundleVersion / CFBundleShortVersionString format that
+# build-release.sh writes into the bundle (both currently include the
+# leading "v", e.g. "v1.0.0"). Without this, Sparkle compares
+# "v1.0.0-beta.5" (installed) against "1.0.0" (appcast) which mixes
+# string-leading and number-leading tokens and produces unreliable
+# results in SUStandardVersionComparator.
+VERSION_NUM="$TAG"
 ZIP_BASENAME="$(basename "$UPDATE_ZIP")"
 DOWNLOAD_URL="${RELEASES_DOWNLOAD_BASE_URL}/${TAG}/${ZIP_BASENAME}"
 PUB_DATE="$(LC_ALL=C date -u "+%a, %d %b %Y %H:%M:%S +0000")"
