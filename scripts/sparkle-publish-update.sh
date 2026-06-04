@@ -88,49 +88,10 @@ PUB_DATE="$(LC_ALL=C date -u "+%a, %d %b %Y %H:%M:%S +0000")"
 
 NOTES_HTML=""
 if [ -n "$NOTES_FILE" ] && [ -f "$NOTES_FILE" ]; then
-  # Minimal markdown -> HTML conversion good enough for Sparkle's release notes pane.
-  NOTES_HTML="$(python3 - "$NOTES_FILE" <<'PY'
-import html
-import re
-import sys
-
-path = sys.argv[1]
-with open(path, "r", encoding="utf-8") as fh:
-    text = fh.read()
-
-out = []
-in_list = False
-for raw in text.splitlines():
-    line = raw.rstrip()
-    if line.startswith("## "):
-        if in_list:
-            out.append("</ul>")
-            in_list = False
-        out.append(f"<h2>{html.escape(line[3:].strip())}</h2>")
-    elif line.startswith("- "):
-        if not in_list:
-            out.append("<ul>")
-            in_list = True
-        body = html.escape(line[2:].strip())
-        # Inline `code` spans
-        body = re.sub(r"`([^`]+)`", lambda m: f"<code>{m.group(1)}</code>", body)
-        out.append(f"<li>{body}</li>")
-    elif not line:
-        if in_list:
-            out.append("</ul>")
-            in_list = False
-    else:
-        if in_list:
-            out.append("</ul>")
-            in_list = False
-        out.append(f"<p>{html.escape(line)}</p>")
-
-if in_list:
-    out.append("</ul>")
-
-print("\n".join(out))
-PY
-)"
+  # Markdown -> HTML conversion (separate file so macOS bash 3.2 does not
+  # have to parse Python heredocs with embedded backticks).
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  NOTES_HTML="$(python3 "$SCRIPT_DIR/markdown-to-html.py" "$NOTES_FILE")"
 fi
 
 echo "==> Writing appcast to $OUTPUT_APPCAST"
