@@ -75,6 +75,27 @@ for resource in "banner.png" "appicon.png" "AppIcon.icns"; do
   fi
 done
 
+echo "==> Checking embedded Sparkle framework"
+SPARKLE_FRAMEWORK="$APP_PATH/Contents/Frameworks/Sparkle.framework"
+if [ ! -d "$SPARKLE_FRAMEWORK" ]; then
+  echo "Missing embedded framework: $SPARKLE_FRAMEWORK"
+  exit 1
+fi
+
+echo "==> Checking Sparkle Info.plist keys"
+for key in SUFeedURL SUPublicEDKey; do
+  if ! plutil -extract "$key" raw "$INFO_PLIST" >/dev/null 2>&1; then
+    echo "Missing Info.plist key: $key"
+    exit 1
+  fi
+done
+SPARKLE_PUBLIC_KEY="$(plutil -extract SUPublicEDKey raw "$INFO_PLIST" || true)"
+if [ -z "$SPARKLE_PUBLIC_KEY" ]; then
+  echo "::warning::SUPublicEDKey is empty; auto-updates will refuse to install signed ZIPs."
+else
+  echo "SUPublicEDKey is set (${#SPARKLE_PUBLIC_KEY} chars)"
+fi
+
 echo "==> Verifying codesign signature"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 SIGN_INFO="$(codesign -dv --verbose=4 "$APP_PATH" 2>&1)"

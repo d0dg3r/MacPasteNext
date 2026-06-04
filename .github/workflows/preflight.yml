@@ -23,6 +23,8 @@ jobs:
           bash -n scripts/smoke-test-macos.sh
           bash -n scripts/validate-release-inputs.sh
           bash -n scripts/capture-screenshots-macos.sh
+          bash -n scripts/sparkle-bootstrap.sh
+          bash -n scripts/sparkle-publish-update.sh
 
       - name: Validate changelog extraction script
         run: |

@@ -11,8 +11,16 @@ APP_DIR="$DIST_DIR/$APP_NAME.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
+FRAMEWORKS_DIR="$CONTENTS_DIR/Frameworks"
 SOURCE_ICON_PNG="${APP_ICON_SOURCE:-assets/appicon-cropped.png}"
 APP_ICON_NAME="AppIcon"
+
+# Sparkle (auto-updater) configuration. The public key is shipped inside the
+# app bundle and used to verify signatures on update ZIPs. The matching
+# private key lives in a GitHub secret and is only used by the release CI.
+# See scripts/sparkle-bootstrap.sh for how to generate a fresh pair.
+SPARKLE_PUBLIC_ED_KEY="${SPARKLE_PUBLIC_ED_KEY:-}"
+SPARKLE_FEED_URL="${SPARKLE_FEED_URL:-https://github.com/d0dg3r/MacPasteNext/releases/latest/download/appcast.xml}"
 
 require_command() {
   local cmd="$1"
@@ -58,9 +66,26 @@ echo "==> Preparing app bundle in $APP_DIR"
 rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR"
 mkdir -p "$RESOURCES_DIR"
+mkdir -p "$FRAMEWORKS_DIR"
 
 cp "$BUILD_DIR/$BIN_NAME" "$MACOS_DIR/$BIN_NAME"
 chmod +x "$MACOS_DIR/$BIN_NAME"
+
+echo "==> Embedding Sparkle.framework"
+require_command ditto
+SPARKLE_FRAMEWORK_SRC="$(find .build -type d -name "Sparkle.framework" -path "*xcframework*macos*" ! -path "*.app/*" -print -quit 2>/dev/null || true)"
+if [ -z "$SPARKLE_FRAMEWORK_SRC" ]; then
+  # Fallback: any Sparkle.framework under .build that does NOT live inside another .app.
+  SPARKLE_FRAMEWORK_SRC="$(find .build -type d -name "Sparkle.framework" ! -path "*.app/*" -print -quit 2>/dev/null || true)"
+fi
+if [ -z "$SPARKLE_FRAMEWORK_SRC" ]; then
+  echo "Could not locate Sparkle.framework after swift build. Check that the Sparkle package resolved correctly."
+  echo "Candidate paths under .build (first 20):"
+  find .build -type d -name "Sparkle*" 2>/dev/null | head -20
+  exit 1
+fi
+echo "Using Sparkle framework: $SPARKLE_FRAMEWORK_SRC"
+ditto "$SPARKLE_FRAMEWORK_SRC" "$FRAMEWORKS_DIR/Sparkle.framework"
 
 if [ ! -f "$SOURCE_ICON_PNG" ]; then
   if [ -f "assets/appicon.png" ]; then
@@ -78,6 +103,11 @@ generate_icns_from_png "$SOURCE_ICON_PNG" "$RESOURCES_DIR/$APP_ICON_NAME.icns"
 
 if [ -f "assets/banner.png" ]; then
   cp "assets/banner.png" "$RESOURCES_DIR/banner.png"
+fi
+
+if [ -z "$SPARKLE_PUBLIC_ED_KEY" ]; then
+  echo "WARNING: SPARKLE_PUBLIC_ED_KEY is empty. App will build, but auto-updates will refuse to install unsigned ZIPs."
+  echo "         Run scripts/sparkle-bootstrap.sh on macOS once and commit the public key."
 fi
 
 cat > "$CONTENTS_DIR/Info.plist" <<EOF
@@ -106,6 +136,16 @@ cat > "$CONTENTS_DIR/Info.plist" <<EOF
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>LSUIElement</key>
+    <true/>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>SUFeedURL</key>
+    <string>$SPARKLE_FEED_URL</string>
+    <key>SUPublicEDKey</key>
+    <string>$SPARKLE_PUBLIC_ED_KEY</string>
+    <key>SUEnableInstallerLauncherService</key>
+    <false/>
+    <key>SUEnableAutomaticChecks</key>
     <true/>
 </dict>
 </plist>

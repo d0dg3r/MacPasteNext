@@ -2,6 +2,7 @@ import SwiftUI
 import OSLog
 import AppKit
 import UniformTypeIdentifiers
+import Sparkle
 
 let appLogger = Logger(subsystem: "io.github.joemild.macpastenext", category: "App")
 
@@ -48,6 +49,7 @@ struct Translator {
         "help_copy_build": ["en": "Copy Version/Build Info", "de": "Version/Build-ID kopieren"],
         "help_export_logs": ["en": "Export Debug Logs...", "de": "Debug-Logs exportieren..."],
         "help_sponsors": ["en": "GitHub Sponsors", "de": "GitHub Sponsors"],
+        "menu_check_updates": ["en": "Check for Updates...", "de": "Nach Updates suchen..."],
         "acc_steps_title": ["en": "Next steps", "de": "Nächste Schritte"],
         "acc_step_1": ["en": "1) Open System Settings and allow Accessibility access for MacPasteNext.", "de": "1) Öffne die Systemeinstellungen und erlaube Bedienungshilfen-Zugriff für MacPasteNext."],
         "acc_step_2": ["en": "2) Return here and click 'Refresh Permission Status'.", "de": "2) Komm zurück und klicke auf 'Berechtigungsstatus aktualisieren'."],
@@ -209,7 +211,17 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
     var helpCopyBuildMenuItem: NSMenuItem?
     var helpExportLogsMenuItem: NSMenuItem?
     var helpSponsorsMenuItem: NSMenuItem?
+    var checkUpdatesMenuItem: NSMenuItem?
     var hasDiscussionsEnabled: Bool = false
+
+    // Sparkle auto-updater. The controller reads SUFeedURL and SUPublicEDKey
+    // from Info.plist (populated by build-release.sh). Background checks are
+    // started here; the menu item below also lets users trigger them manually.
+    lazy var updaterController: SPUStandardUpdaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
     @Published var isMicMuted: Bool = false
     
     @Published var isAccessibilityGranted: Bool = false
@@ -409,6 +421,14 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
+        let checkUpdatesItem = NSMenuItem(
+            title: Translator.get("menu_check_updates", lang: l),
+            action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
+            keyEquivalent: ""
+        )
+        checkUpdatesItem.target = updaterController
+        menu.addItem(checkUpdatesItem)
+
         let aboutItem = NSMenuItem(title: Translator.get("menu_about", lang: l), action: #selector(showAbout), keyEquivalent: "")
         menu.addItem(aboutItem)
 
@@ -447,6 +467,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
         permissionRefreshMenuItem = permissionItem
         quitMenuItem = quitItem
         aboutMenuItem = aboutItem
+        checkUpdatesMenuItem = checkUpdatesItem
         helpMenuItem = helpItem
         helpRepoMenuItem = repoItem
         helpIssueMenuItem = issueItem
@@ -643,6 +664,7 @@ class MacPasteAppDelegate: NSObject, NSApplicationDelegate {
             permissionRefreshMenuItem?.title = Translator.get("update_status", lang: l)
             quitMenuItem?.title = Translator.get("menu_quit", lang: l)
             aboutMenuItem?.title = Translator.get("menu_about", lang: l)
+            checkUpdatesMenuItem?.title = Translator.get("menu_check_updates", lang: l)
             helpMenuItem?.title = Translator.get("menu_help", lang: l)
             helpRepoMenuItem?.title = Translator.get("help_repo", lang: l)
             helpIssueMenuItem?.title = Translator.get("help_issue", lang: l)
