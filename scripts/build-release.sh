@@ -71,6 +71,15 @@ mkdir -p "$FRAMEWORKS_DIR"
 cp "$BUILD_DIR/$BIN_NAME" "$MACOS_DIR/$BIN_NAME"
 chmod +x "$MACOS_DIR/$BIN_NAME"
 
+# Swift Package Manager builds do not add @executable_path/../Frameworks to the
+# binary's LC_RPATH by default, but Sparkle's @rpath/Sparkle.framework/... load
+# command needs it. Add it before codesigning. If the rpath is already present
+# (otool already lists it) install_name_tool would error, hence the guard.
+if ! otool -l "$MACOS_DIR/$BIN_NAME" | grep -q "path @executable_path/../Frameworks"; then
+  install_name_tool -add_rpath "@executable_path/../Frameworks" "$MACOS_DIR/$BIN_NAME"
+  echo "Added @executable_path/../Frameworks to LC_RPATH"
+fi
+
 echo "==> Embedding Sparkle.framework"
 require_command ditto
 SPARKLE_FRAMEWORK_SRC="$(find .build -type d -name "Sparkle.framework" -path "*xcframework*macos*" ! -path "*.app/*" -print -quit 2>/dev/null || true)"
