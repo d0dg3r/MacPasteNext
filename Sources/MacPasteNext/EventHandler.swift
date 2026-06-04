@@ -80,7 +80,9 @@ class EventHandler {
             CGEvent.tapEnable(tap: tap, enable: false)
             if let source = runLoopSource {
                 CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
+                CFRunLoopSourceInvalidate(source)
             }
+            CFMachPortInvalidate(tap)
         }
         eventTap = nil
         runLoopSource = nil
@@ -273,13 +275,25 @@ class EventHandler {
         let stepMs = 20
 
         if pb.changeCount != initialChangeCount {
-            if let captured = pb.string(forType: .string), !captured.isEmpty {
-                primaryBuffer = captured
-                logStore.add("PRIMARY buffer updated (\(captured.count) chars)")
+            // Read the string and the change count back-to-back so the
+            // restore-guard below can detect if anything else writes to the
+            // pasteboard between our capture and our restore.
+            let captured = pb.string(forType: .string)
+            let postCopyChangeCount = pb.changeCount
+            if let s = captured, !s.isEmpty {
+                primaryBuffer = s
+                logStore.add("PRIMARY buffer updated (\(s.count) chars)")
             } else {
                 logStore.add("PRIMARY: clipboard changed but no string payload; buffer kept")
             }
-            restorePasteboard(snapshot)
+            // If something else wrote to the pasteboard between us reading
+            // and us restoring, don't clobber that newer content with our
+            // pre-capture snapshot.
+            if pb.changeCount == postCopyChangeCount {
+                restorePasteboard(snapshot)
+            } else {
+                logStore.add("PRIMARY: clipboard changed externally during capture, restore skipped")
+            }
             return
         }
 
@@ -310,6 +324,11 @@ class EventHandler {
 
         pb.clearContents()
         pb.setString(primaryBuffer, forType: .string)
+        // Snapshot the change count AFTER we wrote our primaryBuffer. If
+        // anyone (user via Cmd+C, another app) writes to the pasteboard
+        // between now and the restore below, we must not overwrite their
+        // newer content with our pre-paste snapshot.
+        let postSetChangeCount = pb.changeCount
 
         simulatePaste()
 
@@ -318,8 +337,13 @@ class EventHandler {
         let restoreDelayMs = Int(settings.pasteDelayMs) + 250
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(restoreDelayMs)) { [weak self] in
             guard let self = self else { return }
-            self.restorePasteboard(snapshot)
-            self.logStore.add("PRIMARY: clipboard restored after paste")
+            let currentChangeCount = NSPasteboard.general.changeCount
+            if currentChangeCount == postSetChangeCount {
+                self.restorePasteboard(snapshot)
+                self.logStore.add("PRIMARY: clipboard restored after paste")
+            } else {
+                self.logStore.add("PRIMARY: clipboard changed externally during paste, restore skipped")
+            }
         }
     }
 
