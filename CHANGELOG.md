@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 
 ## [Unreleased]
 
+## [v1.0.1] - 2026-06-05
+
+- Fixed
+
+- Auto-update from `v1.0.0-beta.5` was sometimes reported as "you're up to date" even though `v1.0.0` was published. Root cause: the appcast generator stripped the `v` prefix from `<sparkle:version>` while `CFBundleVersion` in the installed bundle still carried it (`v1.0.0-beta.5` vs `1.0.0`). Sparkle's `SUStandardVersionComparator` tokenises by digit/non-digit boundaries and falls back to a heuristic when one side leads with a letter and the other with a digit, which produced unreliable "newer?" decisions on already-installed clients. `scripts/sparkle-publish-update.sh` now keeps the `v` prefix verbatim so every appcast entry matches the bundle format (`v1.0.X`).
+- Backfilled the existing `v1.0.0` appcast on GitHub with the corrected format so installs that managed to reach the v-prefixed feed can finally see `v1.0.0` (and now `v1.0.1`) as newer than `v1.0.0-beta.5`.
+
 ## [v1.0.0] - 2026-06-05
 
 First stable release. Distilled from the `v1.0.0-beta.{1..5}` series.
