@@ -132,7 +132,13 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: ${{ contains(github.ref_name, '-beta.') }}
+          # Releases are never marked as prerelease: GitHub refuses to set a
+          # prerelease as "latest", and Sparkle polls
+          # https://github.com/<owner>/<repo>/releases/latest/download/appcast.xml,
+          # so we must always have exactly one "latest" release. The "-beta.N"
+          # suffix in the tag name still tells humans this is a beta build.
+          prerelease: false
+          make_latest: "true"
           body_path: release-notes.md
           files: |
             dist/MacPasteNext-macos-arm64.zip
