@@ -9,10 +9,15 @@ let package = Package(
     products: [
         .executable(name: "MacPasteNext", targets: ["MacPasteNext"])
     ],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.9.0")
+    ],
     targets: [
         .executableTarget(
             name: "MacPasteNext",
-            dependencies: [],
+            dependencies: [
+                .product(name: "Sparkle", package: "Sparkle")
+            ],
             swiftSettings: [
                 .unsafeFlags(["-Xfrontend", "-warn-long-expression-type-checking=100"])
             ]

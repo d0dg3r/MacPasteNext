@@ -16,6 +16,10 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
       APP_BUNDLE_ID: io.github.joemild.macpastenext
       APP_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || format('dev-{0}', github.sha) }}
+      SPARKLE_PUBLIC_ED_KEY: ${{ vars.SPARKLE_PUBLIC_ED_KEY }}
+      # Exposed at job level so subsequent step conditionals can test it.
+      # Empty value means: skip update signing + appcast generation.
+      SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -38,6 +42,8 @@ jobs:
           bash -n scripts/sign-selfsigned.sh
           bash -n scripts/smoke-test-macos.sh
           bash -n scripts/validate-release-inputs.sh
+          bash -n scripts/sparkle-bootstrap.sh
+          bash -n scripts/sparkle-publish-update.sh
 
       - name: Validate resolved release metadata
         run: |
@@ -104,10 +110,31 @@ jobs:
           name: MacPasteNext-macos-arm64
           path: dist/MacPasteNext-macos-arm64.zip
 
+      - name: Sign update with Sparkle and generate appcast
+        if: startsWith(github.ref, 'refs/tags/') && env.SPARKLE_ED_PRIVATE_KEY != ''
+        env:
+          APP_NAME: MacPasteNext
+          MIN_OS_VERSION: "13.0"
+          RELEASES_DOWNLOAD_BASE_URL: https://github.com/${{ github.repository }}/releases/download
+        run: |
+          ./scripts/sparkle-publish-update.sh \
+            dist/MacPasteNext-macos-arm64.zip \
+            "${GITHUB_REF_NAME}" \
+            release-notes.md \
+            dist/appcast.xml
+
+      - name: Warn if Sparkle signing skipped
+        if: startsWith(github.ref, 'refs/tags/') && env.SPARKLE_ED_PRIVATE_KEY == ''
+        run: |
+          echo "::warning::SPARKLE_ED_PRIVATE_KEY secret is not set; release will publish without an appcast.xml. Run scripts/sparkle-bootstrap.sh on macOS once and add the secret + variable to enable auto-updates."
+
       - name: Publish GitHub Release asset
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           prerelease: ${{ contains(github.ref_name, '-beta.') }}
           body_path: release-notes.md
-          files: dist/MacPasteNext-macos-arm64.zip
+          files: |
+            dist/MacPasteNext-macos-arm64.zip
+            dist/appcast.xml
+          fail_on_unmatched_files: false

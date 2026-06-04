@@ -12,9 +12,10 @@ MacPasteNext. Because middle-click just makes sense.
 
 ## Features
 
-- 🖱 **Auto-Copy on Selection**: Highlight text in *any* app, and it is instantly copied to your clipboard.
-- 🖱 **Middle-Click Paste**: Click your middle mouse button to paste your clipboard instantaneously.
+- 🖱 **Auto-Copy on Selection**: Highlight text in *any* app, and it is instantly captured into an internal Linux-style PRIMARY buffer. Your regular `Cmd+C` clipboard is preserved.
+- 🖱 **Middle-Click Paste**: Click your middle mouse button to paste your PRIMARY buffer instantly.
 - 🎤 **Global Microphone Mute**: Toggle your system microphone on/off using a side mouse button. It remembers your previous volume level and displays a distinct Red/Green indicator in the macOS Menu Bar.
+- ♻️ **Auto-Updates**: Powered by [Sparkle](https://sparkle-project.org/). The app checks for new releases in the background and offers one-click updates. EdDSA signatures verify every download.
 - 🌍 **Localization**: Fluent in both English and German.
 - 🐞 **Debug Friendly**: Fully integrated real-time logging console visible directly in the app.
 
@@ -108,6 +109,39 @@ export MAC_CERT_P12_PASSWORD="<your_p12_password>"
 export MAC_CERT_IDENTITY="MacPasteNext Self Signed"
 ```
 
+### One-time Sparkle EdDSA setup (auto-updates)
+
+Sparkle signs every update with EdDSA so the app can verify the download
+even without Apple notarization. You generate the keypair once on macOS,
+add the private key as a GitHub secret, and the public key as a GitHub
+Actions variable that gets embedded into every build.
+
+1. On your Mac, run:
+
+   ```bash
+   ./scripts/sparkle-bootstrap.sh
+   ```
+
+   The script downloads the matching Sparkle release, runs `generate_keys`,
+   stores the private key in your Keychain, and prints both keys with copy
+   instructions.
+
+2. Open `Settings -> Secrets and variables -> Actions` and add:
+
+   - **Variable** `SPARKLE_PUBLIC_ED_KEY` -> the public key from step 1
+     (safe to commit-visible; it ends up in the app's `Info.plist`)
+   - **Secret** `SPARKLE_ED_PRIVATE_KEY` -> the private key from step 1
+     (the release workflow uses it to sign the update ZIP)
+
+3. The next tag push will sign the update with Sparkle, generate an
+   `appcast.xml` referencing the embedded public key, and upload both the
+   ZIP and the appcast as release assets. Installed apps poll
+   `https://github.com/d0dg3r/MacPasteNext/releases/latest/download/appcast.xml`
+   for new versions.
+
+If the secret/variable are missing the workflow still builds and uploads
+the ZIP, just without auto-update metadata, and emits a warning.
+
 ### Triggering releases
 
 - Beta tags use: `v1.0.0-beta.1`, `v1.0.0-beta.2`, ...
@@ -125,6 +159,8 @@ bash -n scripts/build-release.sh
 bash -n scripts/sign-selfsigned.sh
 bash -n scripts/smoke-test-macos.sh
 bash -n scripts/validate-release-inputs.sh
+bash -n scripts/sparkle-bootstrap.sh
+bash -n scripts/sparkle-publish-update.sh
 
 # Changelog extraction sanity check (replace tag as needed)
 ./scripts/extract-changelog.sh v1.0.0-beta.1 CHANGELOG.md /tmp/release-notes.md allow-missing
