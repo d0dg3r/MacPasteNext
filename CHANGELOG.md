@@ -10,6 +10,13 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 
 - Reset release strategy to start at `v1.0.0-beta.N` with clear pre-release/final separation.
 
+## [v1.0.0-beta.3] - 2026-06-04
+
+- Fixed
+
+- Double-click word selection (and triple-click line selection) is now captured into the PRIMARY buffer reliably. The click state is tracked from `leftMouseDown` (more reliable than from the up event), and the Cmd+C is delayed by 50 ms so the host app has time to finalize the selection.
+- Triple-click no longer loses to a stale double-click capture: multi-click captures bypass the auto-copy debounce, and a generation counter cancels superseded captures so the most recent click wins.
+
 ## [v1.0.0-beta.2] - 2026-06-04
 
 - Fixed

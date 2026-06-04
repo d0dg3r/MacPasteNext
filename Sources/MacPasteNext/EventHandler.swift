@@ -13,6 +13,16 @@ class EventHandler {
     private var lastAutoCopyTriggerTime: TimeInterval = 0
     private let autoCopyDebounceSeconds: TimeInterval = 0.3
 
+    // Click state captured on leftMouseDown. Some apps don't surface the
+    // multi-click state reliably on the matching leftMouseUp, so we track it
+    // ourselves from the down event.
+    private var lastClickState: Int64 = 1
+
+    // Each captureSelectionToPrimary call bumps this; pending captures check it
+    // to bail out if a newer click (e.g. triple-click after double-click)
+    // wants to overwrite the buffer.
+    private var captureGeneration: Int = 0
+
     // Linux-style PRIMARY selection buffer. Lives only in this process and
     // is NOT the system clipboard (Cmd+C content is preserved across captures).
     private var primaryBuffer: String = ""
@@ -35,6 +45,7 @@ class EventHandler {
         logStore.add("Starting CGEventTap...")
 
         let eventMask: CGEventMask =
+            (1 << CGEventType.leftMouseDown.rawValue) |
             (1 << CGEventType.leftMouseUp.rawValue) |
             (1 << CGEventType.leftMouseDragged.rawValue) |
             (1 << CGEventType.otherMouseDown.rawValue) |
@@ -75,6 +86,7 @@ class EventHandler {
         runLoopSource = nil
         swallowedDownButtons.removeAll()
         isDragging = false
+        lastClickState = 1
         logStore.add("CGEventTap removed.")
     }
 
@@ -102,25 +114,36 @@ class EventHandler {
         }
 
         switch type {
+        case .leftMouseDown:
+            // Track the click state here: it is reliably set on mouse-down
+            // across apps (the matching up event sometimes loses it).
+            lastClickState = event.getIntegerValueField(.mouseEventClickState)
+            isDragging = false
+            return Unmanaged.passUnretained(event)
+
         case .leftMouseDragged:
             isDragging = true
             return Unmanaged.passUnretained(event)
 
         case .leftMouseUp:
-            let clickState = event.getIntegerValueField(.mouseEventClickState)
-            let isMultiClick = clickState >= 2
-            let triggerCopy = isDragging || isMultiClick
+            let isMultiClick = lastClickState >= 2
+            let wasDragging = isDragging
+            let triggerCopy = wasDragging || isMultiClick
             isDragging = false
 
             if settings.autoCopyOnSelect && triggerCopy {
                 let now = Date().timeIntervalSince1970
-                if now - lastAutoCopyTriggerTime >= autoCopyDebounceSeconds {
+                let withinDebounce = (now - lastAutoCopyTriggerTime) < autoCopyDebounceSeconds
+                // Drags are debounced; multi-clicks always go through so
+                // triple-click can overwrite a pending double-click capture.
+                if !withinDebounce || isMultiClick {
                     lastAutoCopyTriggerTime = now
+                    let clickStateForLog = lastClickState
                     // Defer real work so the tap callback returns immediately
                     // and macOS does not disable the tap for "running too long".
                     DispatchQueue.main.async { [weak self] in
                         guard let self = self else { return }
-                        self.logStore.add("Action: selection detected (clickState=\(clickState)), capturing to PRIMARY")
+                        self.logStore.add("Action: selection detected (clickState=\(clickStateForLog), drag=\(wasDragging)), capturing to PRIMARY")
                         self.captureSelectionToPrimary()
                     }
                 }
@@ -212,15 +235,39 @@ class EventHandler {
     // MARK: - PRIMARY selection (Linux-style)
 
     func captureSelectionToPrimary() {
-        let pb = NSPasteboard.general
-        let snapshot = snapshotPasteboard()
-        let initialChangeCount = pb.changeCount
-
-        simulateCopy()
-        pollClipboardForCapture(initialChangeCount: initialChangeCount, snapshot: snapshot, elapsedMs: 0)
+        captureGeneration += 1
+        let myGen = captureGeneration
+        // Give the host app a few frames to finalize the selection.
+        // Double-click word selection (and triple-click line selection) often
+        // only completes a tick AFTER mouseUp, so sending Cmd+C immediately
+        // can land before the selection exists.
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(50)) { [weak self] in
+            guard let self = self else { return }
+            // A newer capture (e.g. triple-click after this double-click)
+            // already supersedes us; let it do the work.
+            if myGen != self.captureGeneration {
+                self.logStore.add("PRIMARY: capture #\(myGen) superseded by #\(self.captureGeneration), skipping")
+                return
+            }
+            let pb = NSPasteboard.general
+            let snapshot = self.snapshotPasteboard()
+            let initialChangeCount = pb.changeCount
+            self.simulateCopy()
+            self.pollClipboardForCapture(
+                generation: myGen,
+                initialChangeCount: initialChangeCount,
+                snapshot: snapshot,
+                elapsedMs: 0
+            )
+        }
     }
 
-    private func pollClipboardForCapture(initialChangeCount: Int, snapshot: PasteboardSnapshot, elapsedMs: Int) {
+    private func pollClipboardForCapture(generation: Int, initialChangeCount: Int, snapshot: PasteboardSnapshot, elapsedMs: Int) {
+        // A newer capture took over; the newer poll will perform its own
+        // restore, so just stop polling here.
+        if generation != captureGeneration {
+            return
+        }
         let pb = NSPasteboard.general
         let timeoutMs = 300
         let stepMs = 20
@@ -244,6 +291,7 @@ class EventHandler {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(stepMs)) { [weak self] in
             self?.pollClipboardForCapture(
+                generation: generation,
                 initialChangeCount: initialChangeCount,
                 snapshot: snapshot,
                 elapsedMs: elapsedMs + stepMs
