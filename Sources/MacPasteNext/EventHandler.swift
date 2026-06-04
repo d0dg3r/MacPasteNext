@@ -141,14 +141,17 @@ class EventHandler {
             }
 
             // Middle-click paste: ONLY true middle button (== 2), never the
-            // configured mic button. Do not swallow so the underlying app
-            // can still react to middle-click (e.g. open link in new tab).
+            // configured mic button. We MUST swallow the event so apps with
+            // their own middle-click paste (Terminal.app with the middle
+            // paste pref enabled, X11-aware apps, etc.) do not paste a second
+            // time on top of our Cmd+V (issue #1).
             if settings.middleClickPaste && buttonNumber == 2 && Int(buttonNumber) != settings.micMuteButton {
+                swallowedDownButtons.insert(buttonNumber)
                 DispatchQueue.main.async { [weak self] in
-                    self?.logStore.add("Action: middle-click -> paste from PRIMARY")
+                    self?.logStore.add("Action: middle-click intercepted -> paste from PRIMARY")
                     self?.pasteFromPrimary()
                 }
-                return Unmanaged.passUnretained(event)
+                return nil
             }
 
             return Unmanaged.passUnretained(event)
