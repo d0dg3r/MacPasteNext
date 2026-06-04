@@ -10,6 +10,19 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 
 - Reset release strategy to start at `v1.0.0-beta.N` with clear pre-release/final separation.
 
+## [v1.0.0-beta.4] - 2026-06-04
+
+- Added
+
+- Sparkle 2 in-app auto-updater. The app now embeds `Sparkle.framework`, exposes a "Check for Updates..." menu item, and polls `https://github.com/d0dg3r/MacPasteNext/releases/latest/download/appcast.xml` for new releases. Every update ZIP is signed with EdDSA and verified before installation, replacing the manual download/`xattr`/unzip dance.
+- New `scripts/sparkle-bootstrap.sh` for the one-time EdDSA keypair generation, and `scripts/sparkle-publish-update.sh` for CI-side `sign_update` + appcast generation.
+
+- Fixed
+
+- `EventHandler.stop()` now invalidates both the `CFMachPort` and its `CFRunLoopSource` in addition to removing the source, preventing leaks when the event tap is toggled repeatedly.
+- Auto-copy capture no longer clobbers an external clipboard write: the change count captured right after reading the selection is compared against the current change count, and the pre-capture pasteboard snapshot is only restored if nothing else wrote to the clipboard in the meantime.
+- Middle-click paste applies the same guard: the change count snapshotted right after writing `primaryBuffer` is compared before the post-paste restore, so a user `Cmd+C` (or another app's clipboard write) during the paste window is preserved.
+
 ## [v1.0.0-beta.3] - 2026-06-04
 
 - Fixed
