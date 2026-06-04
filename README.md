@@ -10,6 +10,49 @@
 
 MacPasteNext. Because middle-click just makes sense.
 
+## Install (Apple Silicon, macOS 13+)
+
+The app is distributed as a signed ZIP on the [Releases](https://github.com/d0dg3r/MacPasteNext/releases) page. The build is self-signed (no Apple Developer Program subscription), so macOS quarantines it on first launch — you only have to clear that once, and Sparkle handles every update from then on.
+
+### Option A — One-line installer (recommended)
+
+Open Terminal and paste:
+
+```bash
+curl -fsSL https://github.com/d0dg3r/MacPasteNext/releases/latest/download/MacPasteNext-macos-arm64.zip -o /tmp/MacPasteNext.zip \
+  && unzip -oq /tmp/MacPasteNext.zip -d /Applications \
+  && xattr -dr com.apple.quarantine /Applications/MacPasteNext.app \
+  && open /Applications/MacPasteNext.app
+```
+
+This downloads the latest signed build, drops it into `/Applications`, removes the Gatekeeper quarantine flag, and launches the app.
+
+### Option B — Manual install
+
+1. Download `MacPasteNext-macos-arm64.zip` from the [latest release](https://github.com/d0dg3r/MacPasteNext/releases/latest).
+2. Double-click the ZIP to unpack `MacPasteNext.app`.
+3. Move `MacPasteNext.app` into `/Applications`.
+4. Clear the Gatekeeper quarantine (otherwise macOS will refuse to launch a self-signed app):
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/MacPasteNext.app
+   ```
+
+5. Launch the app from Launchpad or Spotlight.
+
+### First launch — grant Accessibility
+
+On first start MacPasteNext asks for **Accessibility** access. This is the macOS permission that lets the app:
+
+- observe global mouse clicks (so it can detect selections and middle-clicks), and
+- simulate `Cmd+C` / `Cmd+V` (so it can paste into any focused app).
+
+Allow it in *System Settings → Privacy & Security → Accessibility*, then click *"Refresh Permission Status"* in the app window. If macOS gets stuck and stops prompting, the settings panel has a built-in `tccutil reset` button that gives it a fresh start.
+
+### Updates are automatic
+
+The app embeds [Sparkle](https://sparkle-project.org/) and checks the signed `appcast.xml` from the latest GitHub release in the background. When a newer build is available, you get a small update prompt right inside MacPasteNext — no more re-running the install commands. Every update ZIP is verified with an EdDSA signature before installation. You can disable background checks in *Settings → Updates* or trigger a check on demand from there or from the menu bar.
+
 ## Features
 
 - 🖱 **Auto-Copy on Selection**: Highlight text in *any* app, and it is instantly captured into an internal Linux-style PRIMARY buffer. Your regular `Cmd+C` clipboard is preserved.
@@ -32,12 +75,12 @@ These screenshots can be refreshed using the GitHub Actions workflow:
   - `assets/screenshot-dark.png`
   - `assets/screenshot-light.png`
 
-## Installation
+## Build from source
 
-Currently you must build the app from source:
+If you want to hack on MacPasteNext or build it yourself instead of using the prebuilt release:
 
 1. Clone this repository.
-2. Open terminal in the cloned directory.
+2. Open a terminal in the cloned directory.
 3. Build a release app bundle:
 
    ```bash
@@ -45,13 +88,15 @@ Currently you must build the app from source:
    ./scripts/build-release.sh
    ```
 
-4. Self-sign locally (optional for quick local tests):
+4. Self-sign locally for quick tests:
 
    ```bash
    codesign --force --deep --sign - dist/MacPasteNext.app
    ```
 
-5. Move `dist/MacPasteNext.app` to your `/Applications/` folder and launch it.
+5. Move `dist/MacPasteNext.app` to `/Applications/` and launch it.
+
+The build expects Swift 5.9+ and uses Apple's `sips`, `iconutil`, `codesign`, and `security` toolchain, so it must run on macOS.
 
 ## Release pipeline (No Apple Developer subscription)
 
@@ -144,10 +189,10 @@ the ZIP, just without auto-update metadata, and emits a warning.
 
 ### Triggering releases
 
-- Beta tags use: `v1.0.0-beta.1`, `v1.0.0-beta.2`, ...
 - Final/stable tags use: `v1.0.0`, `v1.0.1`, ...
-- The release workflow publishes beta tags as GitHub **pre-releases** and final tags as normal releases.
-- Each release builds, signs, runs smoke tests, uploads `MacPasteNext-macos-arm64.zip`, and then triggers screenshot refresh automation.
+- Beta tags use: `v1.0.0-beta.1`, `v1.0.0-beta.2`, ... (the `-beta.N` suffix communicates the channel; the tag name is the source of truth).
+- Every tag is published as a normal (non-prerelease) GitHub release and explicitly promoted to `latest` so Sparkle's poll URL `https://github.com/d0dg3r/MacPasteNext/releases/latest/download/appcast.xml` always resolves. GitHub refuses to set a prerelease as "latest", which would break the auto-updater for all installs.
+- Each release builds, signs, runs smoke tests, uploads `MacPasteNext-macos-arm64.zip` + `appcast.xml`, and then triggers screenshot refresh automation.
 
 ### Local preflight checks before CI
 
@@ -168,23 +213,12 @@ bash -n scripts/sparkle-publish-update.sh
 
 Full app build/sign/smoke requires macOS because it depends on Apple tooling (`sips`, `iconutil`, `codesign`, `security`, `spctl`).
 
-## Permissions Required
+## Troubleshooting
 
-Because MacPasteNext needs to monitor your global mouse clicks and natively simulate keypresses (Cmd+C / Cmd+V) to trick macOS into pasting text, the operating system requires you to grant it **Accessibility** permissions.
-If things get stuck with the permissions cache (as macOS often does), there's a handy `tccutil reset` button built directly into the UI to reset it and prompt again.
-
-## Sideload notes (self-signed builds)
-
-Without Apple notarization, first launch may be blocked by Gatekeeper. Typical user flow:
-
-1. Right-click app -> Open.
-2. Confirm Open in the warning dialog.
-
-If app is quarantined after download, advanced users can remove quarantine manually:
-
-```bash
-xattr -dr com.apple.quarantine /Applications/MacPasteNext.app
-```
+- **"App is damaged and can't be opened"** — Gatekeeper still sees the download as quarantined. Run `xattr -dr com.apple.quarantine /Applications/MacPasteNext.app` once and try again. The installer one-liner in [Install](#install-apple-silicon-macos-13) does this for you.
+- **Accessibility permission stuck / not prompting** — open the app, switch to *Settings* and use the *"Request Permission Again (tccutil reset)"* button. macOS occasionally caches a stale `denied` decision; the button clears it via `tccutil reset Accessibility io.github.joemild.macpastenext`.
+- **Middle-click is doing the wrong thing** — toggle *Middle-Click Paste* in the settings; if you map the mic-mute feature to button 2 it will take precedence over the paste action.
+- **Update check fails** — open *Settings → Updates* and click *Check for Updates*. If you see a feed error, the path is shown in the *About* dialog so you can verify it matches `https://github.com/d0dg3r/MacPasteNext/releases/latest/download/appcast.xml`.
 
 ## Contributing
 

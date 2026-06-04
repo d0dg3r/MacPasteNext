@@ -1,11 +1,17 @@
 # Roadmap
 
+## Shipped in v1.0.0
+
+- DONE - maintainer: Linux-style PRIMARY selection via CGEventTap with snapshot/restore guards
+- DONE - maintainer: Self-signed release pipeline with Sparkle 2 auto-updates (EdDSA-signed appcast)
+- DONE - maintainer: Stabilize permissions flow and diagnostics (tccutil reset, status panel, debug console)
+- DONE - maintainer: Onboarding alert on first launch + tooltips on every setting
+
 ## Near-Term
 
-- IN_PROGRESS - maintainer - 0-4 weeks: Stabilize permissions flow and diagnostics
-- IN_PROGRESS - maintainer - 0-4 weeks: Keep release pipeline deterministic and reproducible
-- PLANNED - community - 0-6 weeks: Improve menu bar UX and discoverability
+- PLANNED - community - 0-6 weeks: Improve menu bar UX and discoverability (status icon hover, glance state)
 - PLANNED - community - 0-6 weeks: Polish About/Help experience and project metadata links
+- PLANNED - maintainer - 0-6 weeks: Track Sparkle update success/failure in the integrated log console
 
 ## Mid-Term
 
@@ -15,9 +21,8 @@
 
 ## Future Ideas
 
-- IN_PROGRESS - maintainer - next patch: Optional onboarding tips for first launch
-- PLANNED - community - 3+ months: More configurable paste behavior profiles
-- IN_PROGRESS - maintainer - next patch: Better troubleshooting export for user bug reports
+- PLANNED - community - 3+ months: More configurable paste behavior profiles (per-app overrides, paste-as-plain)
+- PLANNED - maintainer - next patch: Better troubleshooting export bundle for user bug reports (logs + system info)
 
 ## Process
 

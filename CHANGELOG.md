@@ -6,9 +6,23 @@ The format is inspired by Keep a Changelog and semantic versioning style release
 
 ## [Unreleased]
 
-- Changed
+## [v1.0.0] - 2026-06-05
 
-- Reset release strategy to start at `v1.0.0-beta.N` with clear pre-release/final separation.
+First stable release. Distilled from the `v1.0.0-beta.{1..5}` series.
+
+- Highlights
+
+- Linux-style PRIMARY selection on macOS. Selecting text with the mouse (drag, double-click, triple-click) captures it into a private PRIMARY buffer that is independent from the `Cmd+C` clipboard; middle-click pastes the buffer wherever the cursor is.
+- Active event interception via `CGEventTap` so MacPasteNext can swallow side-button / middle-click events instead of letting the OS or focused app react on top of our action (fixes Terminal.app double-paste, [#1](https://github.com/d0dg3r/MacPasteNext/issues/1)).
+- Optional microphone mute on a configurable side button, with a visible Red/Green indicator in the menu bar.
+- Built-in Sparkle 2 auto-updater. The app polls `https://github.com/d0dg3r/MacPasteNext/releases/latest/download/appcast.xml`, verifies every update ZIP with EdDSA, and installs in-place. Background checks are user-toggleable.
+- Bilingual UI (English / Deutsch) with tooltips on every setting, an integrated debug console, and a one-click `tccutil reset` for stuck Accessibility prompts.
+
+- Release infrastructure
+
+- Self-signed release pipeline that produces a reproducible, identifier-stable `MacPasteNext-macos-arm64.zip` and a Sparkle-signed `appcast.xml` for every tag.
+- All releases (including `-beta.N` channels) publish as non-prerelease GitHub releases and are promoted to `latest`, so the Sparkle feed URL always resolves.
+- `scripts/sparkle-bootstrap.sh` for the one-time EdDSA keypair generation, `scripts/sparkle-publish-update.sh` for CI-side signing and appcast generation, and a smoke test that verifies framework embedding, Info.plist keys, and codesign on every build.
 
 ## [v1.0.0-beta.5] - 2026-06-04
 
