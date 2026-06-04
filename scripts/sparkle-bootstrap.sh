@@ -52,17 +52,25 @@ set +e
 EXISTING_PUBLIC="$("$GENERATE_KEYS" -p 2>/dev/null)"
 set -e
 
-if [ -n "$EXISTING_PUBLIC" ] && [ "$FORCE" != "1" ]; then
+# Sparkle's generate_keys is idempotent: if a keypair is already in the
+# Keychain it just prints info and exits. To force a fresh key we delete
+# the existing Keychain entry first.
+KEYCHAIN_SERVICE="https://sparkle-project.org"
+KEYCHAIN_ACCOUNT="ed25519"
+
+if [ -n "$EXISTING_PUBLIC" ] && [ "$FORCE" = "1" ]; then
+  echo "==> FORCE=1 set: removing existing Sparkle keypair from Keychain"
+  security delete-generic-password -s "$KEYCHAIN_SERVICE" -a "$KEYCHAIN_ACCOUNT" >/dev/null 2>&1 \
+    || echo "    (no matching Keychain item to delete, or already removed)"
+  EXISTING_PUBLIC=""
+fi
+
+if [ -n "$EXISTING_PUBLIC" ]; then
   echo "Existing Sparkle keypair found in Keychain. Reusing it."
-  echo "(Re-run with FORCE=1 to generate a fresh keypair.)"
+  echo "(Re-run with FORCE=1 to delete it and generate a fresh keypair.)"
 else
-  if [ "$FORCE" = "1" ]; then
-    echo "==> FORCE=1 set, generating new keypair (overwrites existing)"
-    "$GENERATE_KEYS" -f
-  else
-    echo "==> Generating new keypair"
-    "$GENERATE_KEYS"
-  fi
+  echo "==> Generating new keypair"
+  "$GENERATE_KEYS"
 fi
 
 PRIVATE_KEY_FILE="$WORK_DIR/sparkle-private-key.txt"
